@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // ⚠️ IMPORTANT: This MUST match your GitHub repo name (with slashes)
+  base: '/markbook/',
+
   plugins: [
     react(),
     VitePWA({
@@ -16,8 +19,9 @@ export default defineConfig({
         background_color: '#F2F6FE',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        // These must match the base path
+        scope: '/markbook/',
+        start_url: '/markbook/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -39,7 +43,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ttf}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB to allow the xlsx/jspdf chunks
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Fallback for SPA routing on GitHub Pages
+        navigateFallback: '/markbook/index.html',
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
