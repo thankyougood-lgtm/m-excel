@@ -96,6 +96,7 @@ export function AnalyticsPage() {
   const [records, setRecords] = useState<AttendanceRecordRow[]>([])
   const [loading, setLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('no')
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null)
 
   const activeClass = classes.find((c) => c.id === selectedClassId) ?? null
 
@@ -155,6 +156,10 @@ export function AnalyticsPage() {
     })()
   }, [activeClass?.id, semester])
 
+  const filteredSubjects = useMemo(() => {
+    return selectedSubjectId === null ? subjects : subjects.filter(s => s.id === selectedSubjectId)
+  }, [subjects, selectedSubjectId])
+
   const overview = useMemo(
     () => computeOverview(students, subjects, sessions),
     [students, subjects, sessions],
@@ -164,12 +169,12 @@ export function AnalyticsPage() {
     [records, sessions, students],
   )
   const subjectAverages = useMemo(
-    () => computeSubjectAverages(scores, subjects, students),
-    [scores, subjects, students],
+    () => computeSubjectAverages(scores, filteredSubjects, students),
+    [scores, filteredSubjects, students],
   )
   const distribution = useMemo(
-    () => computeScoreDistribution(scores, subjects, students),
-    [scores, subjects, students],
+    () => computeScoreDistribution(scores, filteredSubjects, students),
+    [scores, filteredSubjects, students],
   )
   const trend = useMemo(
     () => computeAttendanceTrend(records, sessions, students),
@@ -177,8 +182,8 @@ export function AnalyticsPage() {
   )
   const sexSplit = useMemo(() => computeSexSplit(students), [students])
   const summaries = useMemo(
-    () => computeStudentSummaries(scores, subjects, students, records, sessions),
-    [scores, subjects, students, records, sessions],
+    () => computeStudentSummaries(scores, filteredSubjects, students, records, sessions),
+    [scores, filteredSubjects, students, records, sessions],
   )
 
   const sortedSummaries = useMemo(() => {
@@ -328,6 +333,26 @@ export function AnalyticsPage() {
 
       <div className="analytics-scroll">
         {/* ── Overview strip ─────────────────────────────── */}
+        <div className="analytics-filter-bar">
+          <button 
+            type="button" 
+            className={`filter-chip ${selectedSubjectId === null ? 'is-active' : ''}`}
+            onClick={() => setSelectedSubjectId(null)}
+          >
+            {getText('analytics.allSubjects')}
+          </button>
+          {subjects.map(s => (
+            <button 
+              key={s.id}
+              type="button" 
+              className={`filter-chip ${selectedSubjectId === s.id ? 'is-active' : ''}`}
+              onClick={() => setSelectedSubjectId(s.id!)}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+
         <div className="analytics-overview">
           <div className="overview-card">
             <div className="overview-value">{overview.studentCount}</div>

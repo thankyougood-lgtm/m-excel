@@ -54,12 +54,7 @@ export function SessionDialog({ mode, session, subjects, t, onSave, onDelete, on
 
         <label>
           <span>{t('attendance.sessionDate')}</span>
-          <input
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            required
-          />
+          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
 
         <label>
@@ -67,8 +62,7 @@ export function SessionDialog({ mode, session, subjects, t, onSave, onDelete, on
           <input
             type="number"
             min={1}
-            max={8}
-            placeholder="1-8"
+            placeholder="1"
             value={period}
             onChange={(event) => setPeriod(event.target.value === '' ? '' : Number(event.target.value))}
           />
@@ -76,24 +70,33 @@ export function SessionDialog({ mode, session, subjects, t, onSave, onDelete, on
 
         <label>
           <span>{t('attendance.sessionSubject')}</span>
-          <select
-            value={subjectId ?? ''}
-            onChange={(event) => setSubjectId(event.target.value === '' ? null : Number(event.target.value))}
-          >
-            <option value="">{t('attendance.sessionNone')}</option>
+          {/* Changed from <select> to toggle buttons */}
+          <div className="toggle-group subject-scroll-group" style={{ marginTop: '4px' }}>
+            <button
+              type="button"
+              className={`toggle-btn ${subjectId === null ? 'is-active' : ''}`}
+              onClick={() => setSubjectId(null)}
+            >
+              {t('attendance.sessionNone')}
+            </button>
             {activeSubjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>
+              <button
+                key={subject.id}
+                type="button"
+                className={`toggle-btn ${subjectId === subject.id ? 'is-active' : ''}`}
+                onClick={() => setSubjectId(subject.id!)}
+              >
                 {subject.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </label>
 
         <div className="dialog-actions">
           {mode === 'edit' && onDelete && (
             <button
               type="button"
-              className="toolbar-button danger-button ghost-danger"
+              className="toolbar-button ghost-danger"
               onClick={() => setConfirmDelete(true)}
             >
               {t('attendance.deleteSession')}

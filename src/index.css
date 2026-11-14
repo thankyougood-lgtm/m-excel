@@ -1821,3 +1821,62 @@ select {
     min-width: 60px !important;
   }
 }
+
+/* Remove red color from save retry button */
+.merged-save-btn.retry {
+  background: var(--surface-alt) !important;
+  color: var(--primary) !important;
+  border-color: var(--border) !important;
+}
+
+/* 1. Scrollable Subject Group in SessionDialog */
+.subject-scroll-group {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 6px !important;
+  padding-bottom: 6px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.subject-scroll-group .toggle-btn {
+  font-size: 0.75rem !important;
+  padding: 0 10px !important;
+  height: 32px !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 2. Scrollable Subject Filter for Analytics */
+.analytics-filter-bar {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+
+.filter-chip:active {
+  transform: scale(0.95);
+}
+
+.filter-chip.is-active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}

@@ -75,6 +75,16 @@ export function AddRecordPage() {
   })
 
   const isMountedRef = useRef(true)
+  const longPressTimer = useRef<number | null>(null)
+  const startLongPress = (callback: () => void) => {
+    longPressTimer.current = window.setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(50)
+      callback()
+    }, 600)
+  }
+  const cancelLongPress = () => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current)
+  }
   const studentsRef = useRef(students)
   const scoresRef = useRef(scores)
   const remarksRef = useRef(remarks)
@@ -249,6 +259,18 @@ export function AddRecordPage() {
     const remark = value.trim() === '' ? null : value
     setRemarks((cur) => ({ ...cur, [studentId]: remark }))
     setSaveState('retry')
+  }
+
+  const archiveStudentRow = async (studentId: number) => {
+    if (!window.confirm('Delete this student row?')) return
+    await studentRepo.archiveStudent(studentId)
+    setStudents((cur) => cur.filter((s) => s.id !== studentId))
+  }
+
+  const archiveSubjectColumn = async (subjectId: number) => {
+    if (!window.confirm('Delete this subject column?')) return
+    await subjectRepo.archiveSubject(subjectId)
+    setSubjects((cur) => cur.filter((s) => s.id !== subjectId))
   }
 
   const addStudent = async () => {
@@ -579,7 +601,7 @@ export function AddRecordPage() {
           {saveState === 'saved' && (
             <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg><span>{getText('addRecord.saved')}</span></>
           )}
-          {saveState === 'retry' && <><span>💾</span><span>Save</span></>}
+          {saveState === 'retry' && <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg><span>Save</span></>}
         </button>
       </div>
 
@@ -598,11 +620,26 @@ export function AddRecordPage() {
         <table className="spreadsheet-table" style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
           <colgroup>{visibleColumns.map((c) => <col key={c.key} style={{ width: getColumnWidth(c.key) }} />)}</colgroup>
           <thead>
-            <tr>{visibleColumns.map((c) => <th key={c.key} className={`grid-cell header-cell ${c.className || ''}`}><div className="column-header-wrap"><span>{c.label}</span></div></th>)}</tr>
+            <tr>{visibleColumns.map((c) => <th key={c.key} className={`grid-cell header-cell ${c.className || ''}`}
+                    onPointerDown={(e) => {
+                      if ((e.target as HTMLElement).classList.contains('column-resizer')) return
+                      if ((c as any).subjectId != null) startLongPress(() => archiveSubjectColumn((c as any).subjectId))
+                    }}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                  ><div className="column-header-wrap"><span>{c.label}</span></div></th>)}</tr>
           </thead>
           <tbody>
             {students.map((student, idx) => (
-              <tr key={student.id}>
+              <tr 
+                key={student.id}
+                onPointerDown={(e) => {
+                  if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') return
+                  startLongPress(() => archiveStudentRow(student.id ?? 0))
+                }}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+              >
                 <td className="grid-cell row-index">{idx + 1}</td>
                 <td className="grid-cell student-name-col">
                   <input className="inline-grid-input" value={student.fullName} onChange={(e) => updateStudentField(student.id!, 'fullName', e.target.value)} />
@@ -622,7 +659,18 @@ export function AddRecordPage() {
         </table>
       </div>
 
-      <SheetTabs tabs={sheetTabs} onSelect={handleTabClick} onAdd={() => setCreateClassOpen(true)} />
+      <SheetTabs 
+        tabs={sheetTabs} 
+        onSelect={handleTabClick} 
+        onAdd={() => setCreateClassOpen(true)} 
+        onLongPress={async (tabId) => {
+          const classId = Math.floor(tabId / 10)
+          if (window.confirm('Delete this entire class and all its data? (This cannot be undone)')) {
+            await classRepo.archiveClass(classId)
+            window.location.reload()
+          }
+        }}
+      />
 
       {columnDialogOpen && (
         <div className="class-dialog-backdrop" onClick={() => setColumnDialogOpen(false)}>

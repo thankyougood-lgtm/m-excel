@@ -339,3 +339,45 @@ html.theme-dark .attendance-grid-table td.att-session-cell.is-active-col {
   position: relative;
   z-index: 2;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Fix SessionDialog: Force center on mobile + clamp dropdowns
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Force the dialog to the center of the screen on mobile */
+@media (max-width: 480px) {
+  .session-dialog-backdrop {
+    align-items: center !important; /* Centers vertically */
+    padding: 16px !important;
+  }
+
+  .session-dialog {
+    border-radius: 16px !important; /* Removes the bottom-sheet flat bottom */
+    max-height: 90vh;
+    overflow-y: auto;
+    width: 100% !important;
+    max-width: 24rem !important; /* Same width as Add Record dialogs */
+    margin-bottom: 0 !important; /* Remove safe-area bottom margin */
+  }
+}
+
+/* 2. Prevent the dropdown from floating out of the box on phones */
+.session-dialog select {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  text-overflow: ellipsis;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236173a6%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* 3. Make sure the dialog's form labels don't overflow */
+.session-dialog label {
+  width: 100%;
+  min-width: 0;
+}

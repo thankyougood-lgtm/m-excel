@@ -77,7 +77,7 @@
   "attendance.sessionDate": "ቀን",
   "attendance.sessionPeriod": "ጊዜ",
   "attendance.sessionSubject": "ትምህርት",
-  "attendance.sessionNone": "– ምንም –",
+  "attendance.sessionNone": "ሁሉም ትምህርቶች",
   "attendance.deleteSession": "ክፍለ ጊዜን ሰርዝ",
   "attendance.confirmDelete": "ይህን ክፍለ ጊዜ ያስወግዱ?",
   "attendance.present": "P",
@@ -150,5 +150,6 @@
   "addRecord.typeText": "ጽሑፍ",
   "addRecord.typeNumber": "ቁጥር",
   "addRecord.typeDropdown": "ዝርዝር",
-  "addRecord.maxScore": "ከፍተኛ ውጤት"
+  "addRecord.maxScore": "ከፍተኛ ውጤት",
+  "analytics.allSubjects": "ሁሉም ትምህርቶች"
 }
