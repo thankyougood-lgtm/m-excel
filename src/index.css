@@ -1986,3 +1986,57 @@ select {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   User Manual inside About Dialog
+   ═══════════════════════════════════════════════════════════════════ */
+.help-manual-scroll {
+  max-height: 50vh;
+  overflow-y: auto;
+  text-align: left;
+  padding-right: 8px;
+  margin-bottom: 12px;
+}
+
+.help-manual-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.help-manual-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.help-section {
+  margin-bottom: 16px;
+}
+
+.help-section h4 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.help-section p {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Language toggle in Settings — wrap on narrow phones
+   ═══════════════════════════════════════════════════════════════════ */
+.language-toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.language-toggle-group .toggle-btn {
+  flex: 1 1 auto;
+  min-width: 90px;
+  padding: 0 12px;
+  height: 38px;
+  font-size: 0.85rem;
+}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import en from './i18n/en.json'
 import am from './i18n/am.json'
 import om from './i18n/om.json'
@@ -42,6 +42,7 @@ const translations = {
 function App() {
   const [page, setPage] = useState<PageKey>('home')
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLElement>(null)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -129,6 +130,17 @@ function App() {
       window.removeEventListener('popstate', handlePopState)
     }
   }, [menuOpen, exportMenuOpen, aboutOpen])
+
+  // Apply inert attribute to hamburger menu when closed
+  useEffect(() => {
+    const el = menuRef.current
+    if (!el) return
+    if (menuOpen) {
+      el.removeAttribute('inert')
+    } else {
+      el.setAttribute('inert', '')
+    }
+  }, [menuOpen])
 
   useEffect(() => {
     if (!exportMenuOpen) return
@@ -250,7 +262,7 @@ function App() {
         aria-hidden={!menuOpen}
       />
 
-      <aside className={`hamburger-menu ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
+      <aside ref={menuRef} className={`hamburger-menu ${menuOpen ? 'is-open' : ''}`} aria-hidden={!menuOpen}>
         {menuLinks.map((item) => (
           <button
             key={item.target}
@@ -305,16 +317,30 @@ function App() {
               </div>
 
               <div className="setting-row stacked">
-                <label htmlFor="language-select">{t('settings.language')}</label>
-                <select
-                  id="language-select"
-                  value={language}
-                  onChange={(event) => setLanguage(event.target.value as Language)}
-                >
-                  <option value="en">{t('settings.language.en')}</option>
-                  <option value="am">{t('settings.language.am')}</option>
-                  <option value="om">{t('settings.language.om')}</option>
-                </select>
+                <label>{t('settings.language')}</label>
+                <div className="toggle-group language-toggle-group">
+                  <button
+                    type="button"
+                    className={`toggle-btn ${language === 'en' ? 'is-active' : ''}`}
+                    onClick={() => setLanguage('en')}
+                  >
+                    {t('settings.language.en')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${language === 'am' ? 'is-active' : ''}`}
+                    onClick={() => setLanguage('am')}
+                  >
+                    {t('settings.language.am')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${language === 'om' ? 'is-active' : ''}`}
+                    onClick={() => setLanguage('om')}
+                  >
+                    {t('settings.language.om')}
+                  </button>
+                </div>
               </div>
 
               <div className="setting-row stacked">
@@ -378,11 +404,40 @@ function App() {
           >
             <h3 id="about-dialog-title">{t('about.title')}</h3>
             <p className="text-sm font-semibold text-[var(--navy)]">
-              {t('about.version')}: v0.6
+              {t('about.version')}: 1.0
             </p>
-            <p className="text-sm text-[var(--muted)] leading-relaxed">
+            <p className="text-sm text-[var(--muted)] leading-relaxed" style={{ marginBottom: '16px' }}>
               {t('about.description')}
             </p>
+            <div className="help-manual-scroll">
+              <div className="help-section">
+                <h4>{t('about.homeTitle')}</h4>
+                <p>{t('about.homeDesc')}</p>
+              </div>
+              <div className="help-section">
+                <h4>{t('about.addRecordTitle')}</h4>
+                <p>{t('about.addRecordDesc1')}</p>
+                <p>{t('about.addRecordDesc2')}</p>
+                <p>{t('about.addRecordDesc3')}</p>
+                <p>{t('about.addRecordDesc4')}</p>
+              </div>
+              <div className="help-section">
+                <h4>{t('about.exportTitle')}</h4>
+                <p>{t('about.exportDesc')}</p>
+              </div>
+              <div className="help-section">
+                <h4>{t('about.attendanceTitle')}</h4>
+                <p>{t('about.attendanceDesc')}</p>
+              </div>
+              <div className="help-section">
+                <h4>{t('about.analyticsTitle')}</h4>
+                <p>{t('about.analyticsDesc')}</p>
+              </div>
+              <div className="help-section">
+                <h4>{t('about.settingsTitle')}</h4>
+                <p>{t('about.settingsDesc')}</p>
+              </div>
+            </div>
             <div className="dialog-actions">
               <button
                 type="button"
