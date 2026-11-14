@@ -8,6 +8,7 @@ import { createSampleData } from './db/sampleData'
 import { AddRecordPage } from './pages/AddRecord/AddRecordPage'
 import { AttendancePage } from './pages/Attendance/AttendancePage'
 import { HomePage } from './pages/Home/HomePage'
+import { PWAUpdateBanner } from './components/PWAUpdateBanner'
 import './theme.css'
 
 const AnalyticsPage = lazy(() =>
@@ -394,6 +395,7 @@ function App() {
           </div>
         </div>
       )}
+          <PWAUpdateBanner />
     </div>
   )
 }
