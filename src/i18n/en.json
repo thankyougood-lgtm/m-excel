@@ -171,5 +171,18 @@
   "about.analyticsTitle": "📊 Analytics",
   "about.analyticsDesc": "View charts of your class performance. Tap a subject chip at the top to filter the charts.",
   "about.settingsTitle": "⚙️ Settings",
-  "about.settingsDesc": "Change your language, enable Dark Mode, and use Backup/Restore to save your data safely."
+  "about.settingsDesc": "Change your language, enable Dark Mode, and use Backup/Restore to save your data safely.",
+  "home.uploadTitle": "Upload semester file",
+  "home.uploadDesc": "Sync / update",
+  "home.uploadBtn": "Select Files",
+  "home.sem1Btn": "Select Semester I File",
+  "home.sem2Btn": "Select Semester II File",
+  "home.mergeBtn": "Generate Final Roster",
+  "home.selectFile": "Click to select",
+  "home.fileSelected": "File selected",
+  "home.addTitle": "Add new record",
+  "home.addDesc": "Academic document",
+  "home.folderDesc": "Semester files",
+  "about.uploadTitle": "☁️ Upload & Merge",
+  "about.uploadDesc": "1. Export Semester I and II files from Add Record. 2. Go to the Home page. 3. Upload both files to generate the official combined Roster."
 }

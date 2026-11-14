@@ -415,6 +415,10 @@ function App() {
                 <p>{t('about.homeDesc')}</p>
               </div>
               <div className="help-section">
+                <h4>{t('about.uploadTitle')}</h4>
+                <p>{t('about.uploadDesc')}</p>
+              </div>
+              <div className="help-section">
                 <h4>{t('about.addRecordTitle')}</h4>
                 <p>{t('about.addRecordDesc1')}</p>
                 <p>{t('about.addRecordDesc2')}</p>

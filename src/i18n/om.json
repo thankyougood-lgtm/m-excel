@@ -171,5 +171,18 @@
   "about.analyticsTitle": "📊 Xiinxala",
   "about.analyticsDesc": "Raasaa hojii kutaa keessan ilaali. Raasaa calquuf chaappii barnootaa ol jiru tuqi.",
   "about.settingsTitle": "⚙️ Qindaa'ina",
-  "about.settingsDesc": "Afaan keessan jijjiiri, Dark Mode ban, akkasumas ragaa keessan nagaan qusachuuf Backup/Restore fayyadami."
+  "about.settingsDesc": "Afaan keessan jijjiiri, Dark Mode ban, akkasumas ragaa keessan nagaan qusachuuf Backup/Restore fayyadami.",
+  "home.uploadTitle": "Faayilii semisteeraa olkaa'i",
+  "home.uploadDesc": "Walsimsiisi / haaromsi",
+  "home.uploadBtn": "Faayilii Filadhu",
+  "home.sem1Btn": "Faayilii Semisteera 1 Filadhu",
+  "home.sem2Btn": "Faayilii Semisteera 2 Filadhu",
+  "home.mergeBtn": "Galmee Dhumaa Uumi",
+  "home.selectFile": "Filachuuf tuqi",
+  "home.fileSelected": "Faayiliin filatame",
+  "home.addTitle": "Galmee haaraa dabali",
+  "home.addDesc": "Sanada barnootaa",
+  "home.folderDesc": "Faayiliiwwan semisteeraa",
+  "about.uploadTitle": "☁️ Olkaa'uu fi Walitti Fiduu",
+  "about.uploadDesc": "1. Galmee Dabali irraa faayilii Semisteera 1 fi 2 baasi. 2. Gara fuula Manaatti deemi. 3. Galmee dhumaa uumuuf faayilii lamaan olkaa'i."
 }

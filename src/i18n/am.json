@@ -171,5 +171,18 @@
   "about.analyticsTitle": "📊 ትንታኔ",
   "about.analyticsDesc": "የክፍልዎን አፈጻጸም ገበታዎች ይመልከቱ። ገበታዎቹን ለማጣራት ከላይ ያለውን የትምህርት ቺፕ ይጫኑ።",
   "about.settingsTitle": "⚙️ ቅንብሮች",
-  "about.settingsDesc": "ቋንቋዎን ይቀይሩ፣ ጨለማ ሁነታን ያንቁ እና ውሂብዎን ለመጠበቅ ምትኬ/መመለስን ይጠቀሙ።"
+  "about.settingsDesc": "ቋንቋዎን ይቀይሩ፣ ጨለማ ሁነታን ያንቁ እና ውሂብዎን ለመጠበቅ ምትኬ/መመለስን ይጠቀሙ።",
+  "home.uploadTitle": "የሴሚስተር ፋይል ይጫኑ",
+  "home.uploadDesc": "አመሳስል / አዘምን",
+  "home.uploadBtn": "ፋይሎችን ይምረጡ",
+  "home.sem1Btn": "የሴሚስተር 1 ፋይል ይምረጡ",
+  "home.sem2Btn": "የሴሚስተር 2 ፋይል ይምረጡ",
+  "home.mergeBtn": "የመጨረሻውን መዝገብ ፍጠር",
+  "home.selectFile": "ለመምረጥ ይጫኑ",
+  "home.fileSelected": "ፋይል ተመርጧል",
+  "home.addTitle": "አዲስ መዝገብ አክል",
+  "home.addDesc": "የትምህርት ሰነድ",
+  "home.folderDesc": "የሴሚስተር ፋይሎች",
+  "about.uploadTitle": "☁️ ፋይል መጫን እና ማጣመር",
+  "about.uploadDesc": "1. ከመዝገብ አክል የሴሚስተር 1 እና 2 ፋይሎችን ያውጡ። 2. ወደ መነሻ ገጽ ይሂዱ። 3. ይፋዊውን የተዋሃደ መዝገብ ለማመንጨት ሁለቱንም ፋይሎች ይጫኑ።"
 }
