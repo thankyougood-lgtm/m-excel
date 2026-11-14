@@ -60,6 +60,8 @@ export function AddRecordPage() {
   const [createClassOpen, setCreateClassOpen] = useState(false)
   const [columnDialogOpen, setColumnDialogOpen] = useState(false)
   const [rosterDialogOpen, setRosterDialogOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'student' | 'subject' | 'class'; id: number; name: string } | null>(null)
+  const [alertState, setAlertState] = useState<{ title: string; message: string } | null>(null)
 
   const [columnForm, setColumnForm] = useState({ name: '', maxScore: 100 })
   const [createClassForm, setCreateClassForm] = useState({
@@ -75,15 +77,22 @@ export function AddRecordPage() {
   })
 
   const isMountedRef = useRef(true)
-  const longPressTimer = useRef<number | null>(null)
-  const startLongPress = (callback: () => void) => {
-    longPressTimer.current = window.setTimeout(() => {
-      if (navigator.vibrate) navigator.vibrate(50)
-      callback()
-    }, 600)
+  const pressTimerRef = useRef<number | null>(null)
+
+  const cancelPress = () => {
+    if (pressTimerRef.current !== null) {
+      window.clearTimeout(pressTimerRef.current)
+      pressTimerRef.current = null
+    }
   }
-  const cancelLongPress = () => {
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current)
+
+  const startPress = (target: { type: 'student' | 'subject'; id: number; name: string }) => {
+    cancelPress()
+    pressTimerRef.current = window.setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(30)
+      setDeleteTarget(target)
+      pressTimerRef.current = null
+    }, 600)
   }
   const studentsRef = useRef(students)
   const scoresRef = useRef(scores)
@@ -99,6 +108,7 @@ export function AddRecordPage() {
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
+      cancelPress()
       if (abortControllerRef.current) abortControllerRef.current.abort()
     }
   }, [])
@@ -261,16 +271,20 @@ export function AddRecordPage() {
     setSaveState('retry')
   }
 
-  const archiveStudentRow = async (studentId: number) => {
-    if (!window.confirm('Delete this student row?')) return
-    await studentRepo.archiveStudent(studentId)
-    setStudents((cur) => cur.filter((s) => s.id !== studentId))
-  }
-
-  const archiveSubjectColumn = async (subjectId: number) => {
-    if (!window.confirm('Delete this subject column?')) return
-    await subjectRepo.archiveSubject(subjectId)
-    setSubjects((cur) => cur.filter((s) => s.id !== subjectId))
+  const executeDelete = async () => {
+    if (!deleteTarget) return
+    if (deleteTarget.type === 'student') {
+      await studentRepo.archiveStudent(deleteTarget.id)
+      setStudents((cur) => cur.filter((s) => s.id !== deleteTarget.id))
+    } else if (deleteTarget.type === 'subject') {
+      await subjectRepo.archiveSubject(deleteTarget.id)
+      setSubjects((cur) => cur.filter((s) => s.id !== deleteTarget.id))
+    } else if (deleteTarget.type === 'class') {
+      await classRepo.archiveClass(deleteTarget.id)
+      window.location.reload() // Reload to clear the class from the UI
+      return
+    }
+    setDeleteTarget(null)
   }
 
   const addStudent = async () => {
@@ -296,7 +310,7 @@ export function AddRecordPage() {
       })
       if (created) setSubjects((cur) => [...cur, created])
       setColumnDialogOpen(false)
-    } catch { window.alert(getText('addRecord.classExists')) }
+    } catch { setAlertState({ title: getText('common.attention'), message: getText('addRecord.classExists') }) }
   }
 
   const createClass = async (e: React.FormEvent) => {
@@ -320,7 +334,7 @@ export function AddRecordPage() {
       setSelectedClassId(created.id!)
       setSemester(createClassForm.semester)
       setCreateClassOpen(false)
-    } catch { window.alert(getText('addRecord.classExists')) }
+    } catch { setAlertState({ title: getText('common.attention'), message: getText('addRecord.classExists') }) }
   }
 
   const handleTabClick = (tabId: number) => {
@@ -620,25 +634,48 @@ export function AddRecordPage() {
         <table className="spreadsheet-table" style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
           <colgroup>{visibleColumns.map((c) => <col key={c.key} style={{ width: getColumnWidth(c.key) }} />)}</colgroup>
           <thead>
-            <tr>{visibleColumns.map((c) => <th key={c.key} className={`grid-cell header-cell ${c.className || ''}`}
-                    onPointerDown={(e) => {
-                      if ((e.target as HTMLElement).classList.contains('column-resizer')) return
-                      if ((c as any).subjectId != null) startLongPress(() => archiveSubjectColumn((c as any).subjectId))
-                    }}
-                    onPointerUp={cancelLongPress}
-                    onPointerLeave={cancelLongPress}
-                  ><div className="column-header-wrap"><span>{c.label}</span></div></th>)}</tr>
+            <tr>
+              {visibleColumns.map((c) => {
+                const subjectId =
+                  (c as any).subjectId ??
+                  (c.key?.startsWith('subject-') ? Number(c.key.replace('subject-', '')) : null)
+                const deletable = subjectId != null && !isNaN(subjectId)
+
+                return (
+                  <th
+                    key={c.key}
+                    className={`grid-cell header-cell${deletable ? ' pressable' : ''}`}
+                    {...(deletable && {
+                      onPointerDown: () =>
+                        startPress({ type: 'subject', id: subjectId as number, name: c.label }),
+                      onPointerUp: cancelPress,
+                      onPointerLeave: cancelPress,
+                      onPointerCancel: cancelPress,
+                      onContextMenu: (e: React.MouseEvent) => {
+                        e.preventDefault()
+                        setDeleteTarget({ type: 'subject', id: subjectId as number, name: c.label })
+                      },
+                    })}
+                  >
+                    <div className="column-header-wrap"><span>{c.label}</span></div>
+                  </th>
+                )
+              })}
+            </tr>
           </thead>
           <tbody>
             {students.map((student, idx) => (
               <tr 
                 key={student.id}
-                onPointerDown={(e) => {
-                  if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'BUTTON') return
-                  startLongPress(() => archiveStudentRow(student.id ?? 0))
+                onPointerDown={() => startPress({ type: 'student', id: student.id!, name: student.fullName })}
+                onPointerUp={cancelPress}
+                onPointerLeave={cancelPress}
+                onPointerCancel={cancelPress}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setDeleteTarget({ type: 'student', id: student.id!, name: student.fullName })
                 }}
-                onPointerUp={cancelLongPress}
-                onPointerLeave={cancelLongPress}
+                style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as React.CSSProperties}
               >
                 <td className="grid-cell row-index">{idx + 1}</td>
                 <td className="grid-cell student-name-col">
@@ -663,12 +700,14 @@ export function AddRecordPage() {
         tabs={sheetTabs} 
         onSelect={handleTabClick} 
         onAdd={() => setCreateClassOpen(true)} 
-        onLongPress={async (tabId) => {
+        onLongPress={(tabId) => {
           const classId = Math.floor(tabId / 10)
-          if (window.confirm('Delete this entire class and all its data? (This cannot be undone)')) {
-            await classRepo.archiveClass(classId)
-            window.location.reload()
-          }
+          const targetClass = classes.find(c => c.id === classId)
+          setDeleteTarget({ 
+            type: 'class', 
+            id: classId, 
+            name: targetClass ? targetClass.name : 'this class' 
+          })
         }}
       />
 
@@ -716,6 +755,45 @@ export function AddRecordPage() {
           onExport={executeRosterExport}
           onCancel={() => setRosterDialogOpen(false)}
         />
+      )}
+    
+
+      {alertState && (
+        <div className="class-dialog-backdrop" onClick={() => setAlertState(null)} role="presentation">
+          <div className="class-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>{alertState.title}</h3>
+            <p style={{ margin: '8px 0 16px', color: 'var(--text)', lineHeight: '1.5' }}>
+              {alertState.message}
+            </p>
+            <div className="dialog-actions">
+              <button type="button" className="toolbar-button primary-button" onClick={() => setAlertState(null)} autoFocus>
+                {getText('common.ok')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteTarget && (
+        <div className="class-dialog-backdrop" onClick={() => setDeleteTarget(null)} role="presentation">
+          <div className="class-dialog" onClick={(e) => e.stopPropagation()}>
+            <h3>{getText('common.confirmDeleteTitle')}</h3>
+            <p style={{ margin: '8px 0 16px', color: 'var(--text)' }}>
+              {deleteTarget.type === 'class' 
+                ? 'Are you sure you want to delete this class and ALL its students, marks, and attendance? This cannot be undone.'
+                : getText('common.confirmDeleteMsg')} 
+              <br />
+              <strong style={{ color: 'var(--navy)' }}>{deleteTarget.name}</strong>
+            </p>
+            <div className="dialog-actions">
+              <button type="button" className="toolbar-button" onClick={() => setDeleteTarget(null)}>
+                {getText('common.cancel')}
+              </button>
+              <button type="button" className="toolbar-button danger-button" onClick={() => void executeDelete()}>
+                {getText('common.yesDelete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )

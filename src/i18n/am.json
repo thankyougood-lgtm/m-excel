@@ -151,5 +151,10 @@
   "addRecord.typeNumber": "ቁጥር",
   "addRecord.typeDropdown": "ዝርዝር",
   "addRecord.maxScore": "ከፍተኛ ውጤት",
-  "analytics.allSubjects": "ሁሉም ትምህርቶች"
+  "analytics.allSubjects": "ሁሉም ትምህርቶች",
+  "common.confirmDeleteTitle": "መሰረዝን ያረጋግጡ",
+  "common.confirmDeleteMsg": "እርግጠኛ ነዎት ይህንን መሰረዝ ይፈልጋሉ? ይህ እርምጃ ሊቀለበስ አይችልም።",
+  "common.yesDelete": "አዎ፣ ሰርዝ",
+  "common.ok": "እሺ",
+  "common.attention": "ትኩረት"
 }

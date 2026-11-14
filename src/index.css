@@ -1880,3 +1880,53 @@ select {
   color: #fff;
   border-color: var(--primary);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Prevent text selection on table rows so long-press doesn't
+   trigger the browser's native text selection menu
+   ═══════════════════════════════════════════════════════════════════ */
+.spreadsheet-table tbody tr {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* But allow typing inside inputs */
+.spreadsheet-table tbody tr input,
+.spreadsheet-table tbody tr select {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Column headers */
+.spreadsheet-table thead th {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Long-press friendly header cells
+   ═══════════════════════════════════════════════════════════════════ */
+.header-cell.pressable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  cursor: context-menu;
+}
+
+.spreadsheet-table tbody tr {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.spreadsheet-table tbody tr input,
+.spreadsheet-table tbody tr select {
+  user-select: text;
+  -webkit-user-select: text;
+}

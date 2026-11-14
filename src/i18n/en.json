@@ -151,5 +151,10 @@
   "addRecord.typeNumber": "Number",
   "addRecord.typeDropdown": "Dropdown",
   "addRecord.maxScore": "Max score",
-  "analytics.allSubjects": "All Subjects"
+  "analytics.allSubjects": "All Subjects",
+  "common.confirmDeleteTitle": "Confirm Delete",
+  "common.confirmDeleteMsg": "Are you sure you want to delete this? This action cannot be undone.",
+  "common.yesDelete": "Yes, Delete",
+  "common.ok": "OK",
+  "common.attention": "Attention"
 }
