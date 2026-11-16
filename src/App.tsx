@@ -390,70 +390,88 @@ function App() {
       </nav>
 
       {aboutOpen && (
-        <div
-          className="class-dialog-backdrop"
-          onClick={() => setAboutOpen(false)}
-          role="presentation"
-        >
-          <div
-            className="class-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="about-dialog-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 id="about-dialog-title">{t('about.title')}</h3>
-            <p className="text-sm font-semibold text-[var(--navy)]">
-              {t('about.version')}: 1.0
-            </p>
-            <p className="text-sm text-[var(--muted)] leading-relaxed" style={{ marginBottom: '16px' }}>
-              {t('about.description')}
-            </p>
-            <div className="help-manual-scroll">
-              <div className="help-section">
-                <h4>{t('about.homeTitle')}</h4>
-                <p>{t('about.homeDesc')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.uploadTitle')}</h4>
-                <p>{t('about.uploadDesc')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.addRecordTitle')}</h4>
-                <p>{t('about.addRecordDesc1')}</p>
-                <p>{t('about.addRecordDesc2')}</p>
-                <p>{t('about.addRecordDesc3')}</p>
-                <p>{t('about.addRecordDesc4')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.exportTitle')}</h4>
-                <p>{t('about.exportDesc')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.attendanceTitle')}</h4>
-                <p>{t('about.attendanceDesc')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.analyticsTitle')}</h4>
-                <p>{t('about.analyticsDesc')}</p>
-              </div>
-              <div className="help-section">
-                <h4>{t('about.settingsTitle')}</h4>
-                <p>{t('about.settingsDesc')}</p>
-              </div>
-            </div>
-            <div className="dialog-actions">
-              <button
-                type="button"
-                className="toolbar-button primary-button"
-                onClick={() => setAboutOpen(false)}
+            <div
+              className="class-dialog-backdrop"
+              onClick={() => setAboutOpen(false)}
+              role="presentation"
+            >
+              <div
+                className="class-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="about-dialog-title"
+                onClick={(event) => event.stopPropagation()}
               >
-                {t('about.close')}
-              </button>
+                <h3 id="about-dialog-title">{t('about.title')}</h3>
+                <p className="text-sm font-semibold text-[var(--navy)]">
+                  {t('about.version')}: 1.0
+                </p>
+                <p className="text-sm text-[var(--muted)] leading-relaxed" style={{ marginBottom: '16px' }}>
+                  {t('about.description')}
+                </p>
+                
+                <div className="help-manual-scroll">
+                  <div className="help-section">
+                    <h4>{t('about.sec1Title')}</h4>
+                    <p>{t('about.sec1P1')}</p>
+                    <p>{t('about.sec1P2')}</p>
+                    <p>{t('about.sec1P3')}</p>
+                    <p>{t('about.sec1P4')}</p>
+                    <p>{t('about.sec1P5')}</p>
+                    <p style={{ color: 'var(--primary)', fontWeight: 700 }}>{t('about.sec1P6')}</p>
+                  </div>
+                  
+                  <div className="help-section">
+                    <h4>{t('about.sec2Title')}</h4>
+                    <p>{t('about.sec2P1')}</p>
+                  </div>
+
+                  <div className="help-section">
+                    <h4>{t('about.sec3Title')}</h4>
+                    <p>{t('about.sec3P1')}</p>
+                    <p>{t('about.sec3P2')}</p>
+                    <p>{t('about.sec3P3')}</p>
+                  </div>
+
+                  <div className="help-section">
+                    <h4>{t('about.sec4Title')}</h4>
+                    <p>{t('about.sec4P1')}</p>
+                    <p>{t('about.sec4P2')}</p>
+                    <p>{t('about.sec4P3')}</p>
+                  </div>
+
+                  <div className="help-section">
+                    <h4>{t('about.sec5Title')}</h4>
+                    <p>{t('about.sec5P1')}</p>
+                    <p>{t('about.sec5P2')}</p>
+                  </div>
+
+                  <div className="help-section">
+                    <h4>{t('about.sec6Title')}</h4>
+                    <p>{t('about.sec6P1')}</p>
+                    <p>{t('about.sec6P2')}</p>
+                    <p>{t('about.sec6P3')}</p>
+                  </div>
+
+                  <div className="help-section">
+                    <h4>{t('about.sec7Title')}</h4>
+                    <p>{t('about.sec7P1')}</p>
+                    <p>{t('about.sec7P2')}</p>
+                  </div>
+                </div>
+                
+                <div className="dialog-actions">
+                  <button
+                    type="button"
+                    className="toolbar-button primary-button"
+                    onClick={() => setAboutOpen(false)}
+                  >
+                    {t('about.close')}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
           <PWAUpdateBanner />
     </div>
   )
