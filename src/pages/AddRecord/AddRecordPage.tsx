@@ -365,7 +365,7 @@ export function AddRecordPage() {
   }
 
   // ── Export Current Sheet ──────────────────────────────────────────
-  const exportCurrentSheet = async (format: 'csv' | 'xlsx' | 'pdf') => {
+  const exportCurrentSheet = async (format: 'csv' | 'xlsx') => {
     if (!activeClass?.id) return
     if (abortControllerRef.current) abortControllerRef.current.abort()
     const ac = new AbortController()
@@ -549,7 +549,7 @@ export function AddRecordPage() {
 
   useEffect(() => {
     const onExport = (e: Event) => {
-      const ce = e as CustomEvent<{ format?: 'csv' | 'xlsx' | 'pdf' }>
+      const ce = e as CustomEvent<{ format?: 'csv' | 'xlsx' }>
       if (ce.detail?.format) void exportCurrentSheet(ce.detail.format)
     }
     const onRoster = () => setRosterDialogOpen(true)

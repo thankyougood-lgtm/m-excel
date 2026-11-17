@@ -1,4 +1,4 @@
-export type ExportFormat = 'xlsx' | 'csv' | 'pdf'
+export type ExportFormat = 'xlsx' | 'csv'
 
 export interface ExportColumn {
   id: string

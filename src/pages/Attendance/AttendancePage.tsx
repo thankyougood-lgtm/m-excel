@@ -1,30 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SheetTabs } from '../../components/Sheets/SheetTabs'
 import type {
-  AttendanceSessionRow,
-  MarkBookClass,
-  Semester,
-  StudentRow,
-  SubjectRow,
+  AttendanceSessionRow, MarkBookClass, Semester, StudentRow, SubjectRow,
 } from '../../db/db'
 import * as attendanceRepo from '../../db/repositories/attendanceRepo'
 import * as classRepo from '../../db/repositories/classRepo'
 import * as studentRepo from '../../db/repositories/studentRepo'
 import * as subjectRepo from '../../db/repositories/subjectRepo'
-import { exportAttendanceData } from '../../export/attendanceExport'
+import { exportData } from '../../export'
+import type { ExportColumn, ExportPayload, ExportStudentRow } from '../../export/types'
 import en from '../../i18n/en.json'
 import am from '../../i18n/am.json'
 import om from '../../i18n/om.json'
 import { SessionDialog } from './SessionDialog'
 import './AttendancePage.css'
 
-const dictionaries = {
-  en: en as Record<string, string>,
-  am: am as Record<string, string>,
-  om: om as Record<string, string>,
-}
+const dictionaries = { en: en as Record<string, string>, am: am as Record<string, string>, om: om as Record<string, string> }
 type Locale = keyof typeof dictionaries
-
 function getLocale(): Locale {
   const saved = localStorage.getItem('markbook-language')
   return saved === 'am' || saved === 'om' ? saved : 'en'
@@ -55,22 +47,11 @@ function formatSessionDate(dateISO: string): string {
   try {
     const d = new Date(dateISO + 'T00:00:00')
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  } catch {
-    return dateISO
-  }
-}
-
-function todayISO(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  } catch { return dateISO }
 }
 
 export function AttendancePage() {
   const initial = useMemo(() => readSelectedSheet(), [])
-
   const [classes, setClasses] = useState<MarkBookClass[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(initial.classId)
   const [semester, setSemester] = useState<Semester>(initial.semester)
@@ -81,7 +62,6 @@ export function AttendancePage() {
   const [createClassOpen, setCreateClassOpen] = useState(false)
   const [sessionDialog, setSessionDialog] = useState<SessionDialogState>(null)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'retry'>('saved')
-  const [activeCell, setActiveCell] = useState<{ row: number; col: number } | null>(null)
   const [createClassState, setCreateClassState] = useState({
     schoolName: '',
     grade: 11,
@@ -90,21 +70,9 @@ export function AttendancePage() {
     academicYear: getText('addRecord.defaultYear'),
   })
 
-  const gridRef = useRef<HTMLDivElement>(null)
-  const isMountedRef = useRef(true)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-      if (abortControllerRef.current) abortControllerRef.current.abort()
-    }
-  }, [])
-
   const activeClass = classes.find((c) => c.id === selectedClassId) ?? null
 
-  // Persist sheet selection (shared with Add Record)
+  // Persist sheet selection
   useEffect(() => {
     if (selectedClassId != null) {
       localStorage.setItem('markbook-selected-sheet', selectedClassId + '-' + semester)
@@ -116,10 +84,7 @@ export function AttendancePage() {
     void (async () => {
       const items = await classRepo.listClasses()
       setClasses(items)
-      if (!items.length) {
-        setSelectedClassId(null)
-        return
-      }
+      if (!items.length) { setSelectedClassId(null); return }
       const savedExists = selectedClassId != null && items.some((i) => i.id === selectedClassId)
       const nextSelected = savedExists ? selectedClassId : (items[0]?.id ?? null)
       setSelectedClassId(nextSelected)
@@ -134,13 +99,10 @@ export function AttendancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Load data when active class or semester changes
+  // Load data when class/semester changes
   useEffect(() => {
     if (!activeClass?.id) {
-      setStudents([])
-      setSubjects([])
-      setSessions([])
-      setRecords({})
+      setStudents([]); setSubjects([]); setSessions([]); setRecords({})
       return
     }
     const classId = activeClass.id
@@ -163,15 +125,10 @@ export function AttendancePage() {
         }
         setRecords(recMap)
       } catch (error) {
-        console.error('Failed to load attendance:', error, (error as { inner?: unknown }).inner)
+        console.error('Failed to load attendance:', error)
       }
     })()
   }, [activeClass?.id, semester])
-
-  // Reset active cell when sheet changes
-  useEffect(() => {
-    setActiveCell(null)
-  }, [selectedClassId, semester])
 
   // Summary
   const summary = useMemo(() => {
@@ -195,16 +152,16 @@ export function AttendancePage() {
   // Sheet tabs
   const sheetTabs = useMemo<SheetTab[]>(() => {
     const tabs: SheetTab[] = []
+    const seen = new Set<number>()
     for (const item of classes) {
-      const sems =
-        Array.isArray(item.openSemesters) && item.openSemesters.length ? item.openSemesters : [1]
+      const sems = Array.from(new Set((Array.isArray(item.openSemesters) && item.openSemesters.length ? item.openSemesters : [1]).map(Number)))
       for (const sem of sems) {
-        const label = `${item.name} · ${
-          Number(sem) === 1 ? getText('semester.short.i') : getText('semester.short.ii')
-        }`
+        const id = (item.id ?? 0) * 10 + Number(sem)
+        if (seen.has(id)) continue
+        seen.add(id)
         tabs.push({
-          id: (item.id ?? 0) * 10 + Number(sem),
-          label,
+          id,
+          label: `${item.name} · ${Number(sem) === 1 ? getText('semester.short.i') : getText('semester.short.ii')}`,
           active: item.id === selectedClassId && Number(sem) === semester,
         })
       }
@@ -217,12 +174,8 @@ export function AttendancePage() {
     [students],
   )
   const allActiveSessions = useMemo(() => sessions.filter((s) => !s.archivedAt), [sessions])
-  const activeSessions = useMemo(
-    () => allActiveSessions.slice(0, SESSIONS_LIMIT),
-    [allActiveSessions],
-  )
+  const activeSessions = useMemo(() => allActiveSessions.slice(0, SESSIONS_LIMIT), [allActiveSessions])
   const truncatedSessions = allActiveSessions.length > SESSIONS_LIMIT
-
   const subjectsById = useMemo(() => {
     const m = new Map<number, SubjectRow>()
     for (const s of subjects) if (s.id != null) m.set(s.id, s)
@@ -246,7 +199,7 @@ export function AttendancePage() {
       })
       setSaveState('saved')
     } catch (error) {
-      console.error('Failed to save attendance:', error, (error as { inner?: unknown }).inner)
+      console.error('Failed to save attendance:', error)
       setSaveState('retry')
     }
   }
@@ -273,10 +226,7 @@ export function AttendancePage() {
             }),
         )
       } else {
-        const created = await attendanceRepo.createAttendanceSession({
-          classId: activeClass.id,
-          ...data,
-        })
+        const created = await attendanceRepo.createAttendanceSession({ classId: activeClass.id, ...data })
         setSessions((prev) =>
           [...prev, created].sort((a, b) => {
             const dateCmp = a.date.localeCompare(b.date)
@@ -286,7 +236,7 @@ export function AttendancePage() {
       }
       setSessionDialog(null)
     } catch (error) {
-      console.error('Failed to save session:', error, (error as { inner?: unknown }).inner)
+      console.error('Failed to save session:', error)
     }
   }
 
@@ -305,7 +255,7 @@ export function AttendancePage() {
       })
       setSessionDialog(null)
     } catch (error) {
-      console.error('Failed to archive session:', error, (error as { inner?: unknown }).inner)
+      console.error('Failed to archive session:', error)
     }
   }
 
@@ -316,13 +266,10 @@ export function AttendancePage() {
     const name = `Grade ${createClassState.grade} ${section}`
     try {
       const created = await classRepo.createClass({
-        name,
-        grade: createClassState.grade,
-        section,
-        academicYear: year,
+        name, grade: createClassState.grade, section, academicYear: year,
         schoolName: createClassState.schoolName.trim(),
         semester: createClassState.semester,
-        allowDuplicate: true,
+        allowDuplicate: false,
       })
       await classRepo.openSheet(created.id ?? 0, createClassState.semester)
       setClasses((prev) => {
@@ -333,239 +280,85 @@ export function AttendancePage() {
       setSelectedClassId(created.id ?? null)
       setSemester(createClassState.semester)
       setCreateClassOpen(false)
-      setCreateClassState({
-        schoolName: '',
-        grade: 11,
-        section: 'A',
-        semester: 1,
-        academicYear: getText('addRecord.defaultYear'),
-      })
+      setCreateClassState({ schoolName: '', grade: 11, section: 'A', semester: 1, academicYear: getText('addRecord.defaultYear') })
     } catch (error) {
       console.error('Failed to create class:', error)
       window.alert(getText('addRecord.classExists'))
     }
   }
 
-  // ── Export ───────────────────────────────────────────────────────────
-  const exportCurrentSheet = async (format: 'csv' | 'xlsx' | 'pdf') => {
-    if (!activeClass?.id) return
+  // ── Export Handler ────────────────────────────────────────────────
+  useEffect(() => {
+    const handleExport = async (e: Event) => {
+      const ce = e as CustomEvent<{ format?: 'csv' | 'xlsx' }>
+      if (!ce.detail?.format || !activeClass) return
+      
+      window.dispatchEvent(new CustomEvent('markbook:export-status', { detail: { exporting: true } }))
+      try {
+        const cols: ExportColumn[] = [
+          { id: 'no', label: 'NO', widthPx: 48, kind: 'no' },
+          { id: 'name', label: 'Students name', widthPx: 150, kind: 'name' },
+          ...activeSessions.map(s => ({
+            id: `sess-${s.id}`,
+            label: s.date + (s.period ? ' P' + s.period : ''),
+            widthPx: 80,
+            kind: 'extra' as const
+          })),
+          { id: 'P', label: 'P', widthPx: 40, kind: 'score' },
+          { id: 'A', label: 'A', widthPx: 40, kind: 'score' },
+          { id: 'L', label: 'L', widthPx: 40, kind: 'score' },
+          { id: 'E', label: 'E', widthPx: 40, kind: 'score' },
+        ]
 
-    if (abortControllerRef.current) abortControllerRef.current.abort()
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
+        const rows: ExportStudentRow[] = activeStudents.map((student, idx) => {
+          const sid = student.id!
+          const sum = summary[sid] || { P: 0, A: 0, L: 0, E: 0 }
+          const colScores: Record<string, any> = {}
+          
+          for (const s of activeSessions) {
+            colScores[`sess-${s.id}`] = records[`${s.id}:${sid}`] || ''
+          }
+          colScores['P'] = sum.P
+          colScores['A'] = sum.A
+          colScores['L'] = sum.L
+          colScores['E'] = sum.E
 
-    window.dispatchEvent(new CustomEvent('markbook:export-status', { detail: { exporting: true } }))
+          return {
+            studentId: sid, serialNo: idx + 1, name: student.fullName, sex: '', age: '',
+            scores: colScores, total: null, remark: ''
+          }
+        })
 
-    try {
-      const sessionHeaders = activeSessions.map((s) => {
-        const parts: string[] = [s.date]
-        if (s.period != null) parts.push(`P${s.period}`)
-        return parts.join(' ')
-      })
-
-      const exportStudents = activeStudents.map((student, idx) => {
-        const studentId = student.id as number
-        const statuses = activeSessions.map(
-          (s) => (records[`${s.id}:${studentId}`] ?? '') as 'P' | 'A' | 'L' | 'E' | '',
-        )
-        const sum = summary[studentId] ?? { P: 0, A: 0, L: 0, E: 0 }
-        return {
-          serialNo: idx + 1,
-          name: student.fullName,
-          statuses,
-          summary: { P: sum.P, A: sum.A, L: sum.L, E: sum.E },
-        }
-      })
-
-      await exportAttendanceData(
-        format,
-        {
+        const payload: ExportPayload = {
           schoolName: activeClass.schoolName,
-          className: activeClass.name,
+          className: activeClass.name + ' - Attendance',
           semester: semester === 2 ? 2 : 1,
           academicYear: activeClass.academicYear,
-          dateStr: todayISO(),
-          sessionHeaders,
-          students: exportStudents,
-        },
-        abortController.signal,
-      )
-    } catch (error) {
-      if (abortController.signal.aborted) return
-      console.error('Attendance export failed', error)
-      window.alert('Export failed. Please try again.')
-    } finally {
-      if (isMountedRef.current) {
-        window.dispatchEvent(
-          new CustomEvent('markbook:export-status', { detail: { exporting: false } }),
-        )
-      }
-    }
-  }
+          columns: cols, rows
+        }
 
-  useEffect(() => {
-    const handleExport = (event: Event) => {
-      const ce = event as CustomEvent<{ format?: 'csv' | 'xlsx' | 'pdf' }>
-      const format = ce.detail?.format
-      if (!format) return
-      void exportCurrentSheet(format)
+        await exportData(ce.detail.format, payload)
+      } catch (err) {
+        console.error('Attendance export failed', err)
+      } finally {
+        window.dispatchEvent(new CustomEvent('markbook:export-status', { detail: { exporting: false } }))
+      }
     }
     window.addEventListener('markbook:export', handleExport)
     return () => window.removeEventListener('markbook:export', handleExport)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeClass?.id, activeStudents, activeSessions, records, summary, semester])
+  }, [activeClass, students, sessions, records, summary, semester])
 
-  // ── Keyboard navigation ──────────────────────────────────────────────
-  useEffect(() => {
-    if (!activeCell) return
-    const cell = gridRef.current?.querySelector<HTMLElement>(
-      `[data-cell="${activeCell.row}-${activeCell.col}"]`,
-    )
-    cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [activeCell])
-
-  const handleGridKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (activeSessions.length === 0 || activeStudents.length === 0) return
-
-    if (!activeCell) {
-      if (event.key.startsWith('Arrow') || event.key === ' ' || event.key === 'Enter') {
-        event.preventDefault()
-        setActiveCell({ row: 0, col: 0 })
-      }
-      return
-    }
-
-    const maxRow = activeStudents.length - 1
-    const maxCol = activeSessions.length - 1
-
-    switch (event.key) {
-      case 'ArrowUp':
-        event.preventDefault()
-        setActiveCell({ row: Math.max(0, activeCell.row - 1), col: activeCell.col })
-        break
-      case 'ArrowDown':
-        event.preventDefault()
-        setActiveCell({ row: Math.min(maxRow, activeCell.row + 1), col: activeCell.col })
-        break
-      case 'ArrowLeft':
-        event.preventDefault()
-        setActiveCell({ row: activeCell.row, col: Math.max(0, activeCell.col - 1) })
-        break
-      case 'ArrowRight':
-        event.preventDefault()
-        setActiveCell({ row: activeCell.row, col: Math.min(maxCol, activeCell.col + 1) })
-        break
-      case ' ':
-      case 'Enter': {
-        event.preventDefault()
-        const student = activeStudents[activeCell.row]
-        const session = activeSessions[activeCell.col]
-        if (student?.id != null && session) {
-          void cycleCell(session.id, student.id)
-        }
-        break
-      }
-      case 'Escape':
-        setActiveCell(null)
-        break
-    }
-  }
-
-  const saveLabel =
-    saveState === 'saved'
-      ? getText('attendance.saved')
-      : saveState === 'saving'
-      ? getText('attendance.saving')
-      : getText('attendance.retry')
-
-  const createClassDialogNode = createClassOpen ? (
-    <div className="class-dialog-backdrop" onClick={() => setCreateClassOpen(false)}>
-      <form className="class-dialog" onClick={(e) => e.stopPropagation()} onSubmit={createClass}>
-        <h3>{getText('addRecord.classDialogTitle')}</h3>
-        <label>
-          <span>{getText('addRecord.school')}</span>
-          <input
-            value={createClassState.schoolName}
-            onChange={(e) => setCreateClassState((c) => ({ ...c, schoolName: e.target.value }))}
-          />
-        </label>
-        <div className="dialog-two-col">
-          <label>
-            <span>{getText('addRecord.grade')}</span>
-            <select
-              value={createClassState.grade}
-              onChange={(e) =>
-                setCreateClassState((c) => ({ ...c, grade: Number(e.target.value) }))
-              }
-            >
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>{getText('addRecord.section')}</span>
-            <input
-              value={createClassState.section}
-              maxLength={3}
-              onChange={(e) =>
-                setCreateClassState((c) => ({ ...c, section: e.target.value.toUpperCase() }))
-              }
-            />
-          </label>
-        </div>
-        <div className="dialog-two-col">
-          <label>
-            <span>{getText('addRecord.semester')}</span>
-            <select
-              value={createClassState.semester}
-              onChange={(e) =>
-                setCreateClassState((c) => ({ ...c, semester: Number(e.target.value) as Semester }))
-              }
-            >
-              <option value={1}>I</option>
-              <option value={2}>II</option>
-            </select>
-          </label>
-          <label>
-            <span>{getText('addRecord.year')}</span>
-            <input
-              value={createClassState.academicYear}
-              onChange={(e) =>
-                setCreateClassState((c) => ({ ...c, academicYear: e.target.value }))
-              }
-            />
-          </label>
-        </div>
-        <div className="dialog-actions">
-          <button type="button" className="toolbar-button" onClick={() => setCreateClassOpen(false)}>
-            {getText('common.cancel')}
-          </button>
-          <button type="submit" className="toolbar-button primary-button">
-            {getText('common.save')}
-          </button>
-        </div>
-      </form>
-    </div>
-  ) : null
-
-  const sessionCountText = activeSessions.length
-    ? getText('attendance.sessionCount').replace('{n}', String(activeSessions.length))
-    : ''
+  const saveLabel = saveState === 'saved' ? getText('attendance.saved') : saveState === 'saving' ? getText('attendance.saving') : getText('attendance.retry')
+  const sessionCountText = activeSessions.length ? getText('attendance.sessionCount').replace('{n}', String(activeSessions.length)) : ''
 
   return (
     <section className="attendance-page">
       <div className="add-record-header">
         <div className="record-meta-block">
-          <div className="record-class-name">
-            {activeClass?.name ?? getText('page.attendance')}
-          </div>
+          <div className="record-class-name">{activeClass?.name ?? getText('page.attendance')}</div>
           <div className="record-school-name">{activeClass?.schoolName ?? ''}</div>
           <div className="record-semester">
-            {activeClass?.academicYear ?? getText('addRecord.defaultYear')} ·{' '}
-            {semester === 1 ? getText('semester.short.i') : getText('semester.short.ii')}
+            {activeClass?.academicYear ?? getText('addRecord.defaultYear')} · {semester === 1 ? getText('semester.short.i') : getText('semester.short.ii')}
           </div>
         </div>
         <div className="save-indicator">{saveLabel}</div>
@@ -573,22 +366,13 @@ export function AttendancePage() {
 
       {!activeClass ? (
         <div className="attendance-grid-wrapper">
-          <div className="grid-empty-state">
-            <p>{getText('attendance.empty')}</p>
-          </div>
+          <div className="grid-empty-state"><p>{getText('attendance.empty')}</p></div>
         </div>
       ) : (
         <>
           <div className="record-toolbar" aria-label="Attendance actions">
-            <button
-              type="button"
-              className="toolbar-button primary-button icon-button"
-              onClick={() => setSessionDialog({ mode: 'add' })}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              <span>{getText('attendance.addSession')}</span>
+            <button type="button" className="toolbar-button primary-button" onClick={() => setSessionDialog({ mode: 'add' })}>
+              {getText('attendance.addSession')}
             </button>
             {sessionCountText && <span className="session-count-badge">{sessionCountText}</span>}
           </div>
@@ -596,18 +380,10 @@ export function AttendancePage() {
           {activeSessions.length === 0 ? (
             <div className="attendance-grid-wrapper">
               <div className="empty-sessions-banner">{getText('attendance.noSessions')}</div>
-              <table
-                className="attendance-grid-table"
-                role="grid"
-                aria-label="Attendance grid"
-              >
+              <table className="attendance-grid-table" role="grid">
                 <colgroup>
-                  <col className="att-col-no" />
-                  <col className="att-col-name" />
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
+                  <col className="att-col-no" /><col className="att-col-name" />
+                  <col className="att-col-sum" /><col className="att-col-sum" /><col className="att-col-sum" /><col className="att-col-sum" />
                 </colgroup>
                 <thead>
                   <tr>
@@ -623,23 +399,7 @@ export function AttendancePage() {
                   {activeStudents.map((student, index) => (
                     <tr key={student.id}>
                       <td className="att-no">{index + 1}</td>
-                      <td className="att-name">
-                      <input
-                        className="inline-grid-input"
-                        value={student.fullName}
-                        onChange={(e) => {
-                          const newName = e.target.value
-                          setStudents((prev) =>
-                            prev.map((s) => (s.id === student.id ? { ...s, fullName: newName } : s))
-                          )
-                        }}
-                        onBlur={async (e) => {
-                          if (student.id) {
-                            await studentRepo.updateStudent({ ...student, fullName: e.target.value })
-                          }
-                        }}
-                      />
-                    </td>
+                      <td className="att-name">{student.fullName}</td>
                       <td className="att-summary att-p">0</td>
                       <td className="att-summary att-a">0</td>
                       <td className="att-summary att-l">0</td>
@@ -650,62 +410,31 @@ export function AttendancePage() {
               </table>
             </div>
           ) : (
-            <div
-              className="attendance-grid-wrapper"
-              ref={gridRef}
-              tabIndex={0}
-              onKeyDown={handleGridKeyDown}
-              aria-label="Attendance grid"
-            >
-              <table
-                className="attendance-grid-table"
-                role="grid"
-                aria-label="Attendance grid"
-              >
+            <div className="attendance-grid-wrapper">
+              <table className="attendance-grid-table" role="grid">
                 <colgroup>
-                  <col className="att-col-no" />
-                  <col className="att-col-name" />
-                  {activeSessions.map((s) => (
-                    <col key={s.id} className="att-col-session" />
-                  ))}
+                  <col className="att-col-no" /><col className="att-col-name" />
+                  {activeSessions.map(s => <col key={s.id} className="att-col-session" />)}
                   {truncatedSessions && <col className="att-col-ellipsis" />}
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
-                  <col className="att-col-sum" />
+                  <col className="att-col-sum" /><col className="att-col-sum" /><col className="att-col-sum" /><col className="att-col-sum" />
                 </colgroup>
                 <thead>
                   <tr>
                     <th className="att-no att-header">NO</th>
                     <th className="att-name att-header">{getText('addRecord.studentName')}</th>
-                    {activeSessions.map((session, colIdx) => {
-                      const subj =
-                        session.subjectId != null ? subjectsById.get(session.subjectId) : undefined
+                    {activeSessions.map((session) => {
+                      const subj = session.subjectId != null ? subjectsById.get(session.subjectId) : undefined
                       const parts: string[] = []
                       if (session.period != null) parts.push(`P${session.period}`)
                       if (subj) parts.push(subj.name.slice(0, 6))
-                      const isActiveCol = activeCell?.col === colIdx
                       return (
-                        <th
-                          key={session.id}
-                          className={`att-session att-header att-session-clickable ${
-                            isActiveCol ? 'is-active-col' : ''
-                          }`}
-                          onClick={() => setSessionDialog({ mode: 'edit', session })}
-                          title={session.date}
-                        >
+                        <th key={session.id} className="att-session att-header att-session-clickable" onClick={() => setSessionDialog({ mode: 'edit', session })} title={session.date}>
                           <div className="att-session-date">{formatSessionDate(session.date)}</div>
-                          {parts.length > 0 && (
-                            <div className="att-session-detail">{parts.join(' ')}</div>
-                          )}
+                          {parts.length > 0 && <div className="att-session-detail">{parts.join(' ')}</div>}
                         </th>
                       )
                     })}
-                    {truncatedSessions && (
-                      <th className="att-ellipsis att-header" title="Additional sessions hidden">
-                        …
-                      </th>
-                    )}
+                    {truncatedSessions && <th className="att-ellipsis att-header">…</th>}
                     <th className="att-summary att-p att-header">{getText('attendance.present')}</th>
                     <th className="att-summary att-a att-header">{getText('attendance.absent')}</th>
                     <th className="att-summary att-l att-header">{getText('attendance.late')}</th>
@@ -713,51 +442,17 @@ export function AttendancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeStudents.map((student, rowIdx) => {
+                  {activeStudents.map((student, index) => {
                     const studentId = student.id as number
                     const sum = summary[studentId] ?? { P: 0, A: 0, L: 0, E: 0 }
                     return (
                       <tr key={studentId}>
-                        <td className="att-no">{rowIdx + 1}</td>
-                        <td className="att-name">
-                      <input
-                        className="inline-grid-input"
-                        value={student.fullName}
-                        onChange={(e) => {
-                          const newName = e.target.value
-                          setStudents((prev) =>
-                            prev.map((s) => (s.id === student.id ? { ...s, fullName: newName } : s))
-                          )
-                        }}
-                        onBlur={async (e) => {
-                          if (student.id) {
-                            await studentRepo.updateStudent({ ...student, fullName: e.target.value })
-                          }
-                        }}
-                      />
-                    </td>
-                        {activeSessions.map((session, colIdx) => {
+                        <td className="att-no">{index + 1}</td>
+                        <td className="att-name">{student.fullName}</td>
+                        {activeSessions.map((session) => {
                           const status = records[`${session.id}:${studentId}`]
-                          const isActiveCol = activeCell?.col === colIdx
-                          const isActiveCell =
-                            activeCell?.row === rowIdx && activeCell?.col === colIdx
                           return (
-                            <td
-                              key={session.id}
-                              className={`att-session-cell status-${status ?? 'none'} ${
-                                isActiveCol ? 'is-active-col' : ''
-                              } ${isActiveCell ? 'is-active-cell' : ''}`}
-                              data-cell={`${rowIdx}-${colIdx}`}
-                              onClick={() => {
-                                gridRef.current?.focus()
-                                setActiveCell({ row: rowIdx, col: colIdx })
-                                void cycleCell(session.id, studentId)
-                              }}
-                              role="gridcell"
-                              aria-label={`${student.fullName} ${session.date}: ${
-                                status ?? 'not taken'
-                              }`}
-                            >
+                            <td key={session.id} className={`att-session-cell status-${status ?? 'none'}`} onClick={() => void cycleCell(session.id, studentId)} role="gridcell">
                               {status ?? '–'}
                             </td>
                           )
@@ -777,11 +472,7 @@ export function AttendancePage() {
         </>
       )}
 
-      <SheetTabs
-        tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]}
-        onSelect={handleTabSelect}
-        onAdd={() => setCreateClassOpen(true)}
-      />
+      <SheetTabs tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]} onSelect={handleTabSelect} onAdd={() => setCreateClassOpen(true)} />
 
       {sessionDialog && (
         <SessionDialog
@@ -795,7 +486,31 @@ export function AttendancePage() {
         />
       )}
 
-      {createClassDialogNode}
+      {createClassOpen && (
+        <div className="class-dialog-backdrop" onClick={() => setCreateClassOpen(false)} role="presentation">
+          <form className="class-dialog" onClick={(e) => e.stopPropagation()} onSubmit={createClass}>
+            <h3>{getText('addRecord.classDialogTitle')}</h3>
+            <label><span>{getText('addRecord.school')}</span><input value={createClassState.schoolName} onChange={(e) => setCreateClassState((c) => ({ ...c, schoolName: e.target.value }))} /></label>
+            <div className="dialog-two-col">
+              <label><span>{getText('addRecord.grade')}</span><input value={createClassState.grade} onChange={(e) => setCreateClassState((c) => ({ ...c, grade: Number(e.target.value) || 1 }))} /></label>
+              <label><span>{getText('addRecord.section')}</span><input value={createClassState.section} maxLength={3} onChange={(e) => setCreateClassState((c) => ({ ...c, section: e.target.value.toUpperCase() }))} /></label>
+            </div>
+            <div className="dialog-two-col">
+              <label><span>{getText('addRecord.semester')}</span>
+                <div className="toggle-group">
+                  <button type="button" className={`toggle-btn ${createClassState.semester === 1 ? 'is-active' : ''}`} onClick={() => setCreateClassState((c) => ({ ...c, semester: 1 }))}>I</button>
+                  <button type="button" className={`toggle-btn ${createClassState.semester === 2 ? 'is-active' : ''}`} onClick={() => setCreateClassState((c) => ({ ...c, semester: 2 }))}>II</button>
+                </div>
+              </label>
+              <label><span>{getText('addRecord.year')}</span><input value={createClassState.academicYear} onChange={(e) => setCreateClassState((c) => ({ ...c, academicYear: e.target.value }))} /></label>
+            </div>
+            <div className="dialog-actions">
+              <button type="button" className="toolbar-button" onClick={() => setCreateClassOpen(false)}>{getText('common.cancel')}</button>
+              <button type="submit" className="toolbar-button primary-button">{getText('common.save')}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </section>
   )
 }

@@ -1,11 +1,11 @@
-import type { ExportFormat, ExportPayload } from './types'
+import type { ExportPayload } from './types'
 
-export type { ExportFormat, ExportPayload, ExportColumn, ExportStudentRow } from './types'
+export type { ExportPayload, ExportColumn, ExportStudentRow } from './types'
 export { exportTheme } from './exportTheme'
 export { getExportFileName } from './fileName'
 
 export async function exportData(
-  format: ExportFormat,
+  format: 'csv' | 'xlsx',
   payload: ExportPayload,
   signal?: { aborted: boolean },
 ): Promise<void> {
@@ -25,11 +25,6 @@ export async function exportData(
     return
   }
 
-  if (format === 'pdf') {
-    const { exportPdf } = await import('./exportPdf')
-    if (signal?.aborted) return
-    await exportPdf(payload)
-    return
-  }
+
 }
 
