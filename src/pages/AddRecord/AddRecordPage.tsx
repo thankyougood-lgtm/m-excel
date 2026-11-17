@@ -528,7 +528,14 @@ export function AddRecordPage() {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
       } else {
-        const csv = writeRosterCsv({ model, className: activeClass.name })
+        const csv = writeRosterCsv({
+          model,
+          schoolName: activeClass.schoolName ?? '',
+          grade: activeClass.grade || 0,
+          section: activeClass.section || 'A',
+          academicYear: formatAcademicYear(activeClass.academicYear),
+          semester: semester === 2 ? 2 : 1,
+        })
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)

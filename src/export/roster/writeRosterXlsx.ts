@@ -115,6 +115,23 @@ export async function writeRosterXlsx(input: RosterXlsxInput): Promise<Uint8Arra
     }
   }
 
+  // Add signature lines
+  wsData.push(new Array(headers.length).fill('')) // spacer
+  wsData.push(new Array(headers.length).fill('')) // spacer
+  
+  const sigRow = new Array(headers.length).fill('')
+  sigRow[1] = { v: 'Teacher Signature: _______________________', t: 's', s: { font: { name: 'Times New Roman', sz: 11 } } }
+  sigRow[Math.floor(headers.length / 2) + 2] = { v: 'Head Office Signature: _______________________', t: 's', s: { font: { name: 'Times New Roman', sz: 11 } } }
+  wsData.push(sigRow)
+  
+  wsData.push(new Array(headers.length).fill('')) // spacer
+  wsData.push(new Array(headers.length).fill('')) // spacer
+  
+  const dateRow = new Array(headers.length).fill('')
+  dateRow[1] = { v: 'Date: _______________________', t: 's', s: { font: { name: 'Times New Roman', sz: 11 } } }
+  dateRow[Math.floor(headers.length / 2) + 2] = { v: 'School Stamp: _______________________', t: 's', s: { font: { name: 'Times New Roman', sz: 11 } } }
+  wsData.push(dateRow)
+
   const ws = XLSX.utils.aoa_to_sheet(wsData)
 
   // Merge NO, Name, Sex, Age across the 3 rows

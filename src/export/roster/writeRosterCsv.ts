@@ -3,7 +3,11 @@ import { ROSTER_LABELS, SEM_LABELS } from './labels'
 
 export interface RosterCsvInput {
   model: RosterModel
-  className: string
+  schoolName?: string
+  grade: number | string
+  section: string
+  academicYear: string
+  semester: 1 | 2
 }
 
 function esc(val: unknown): string {
@@ -12,7 +16,6 @@ function esc(val: unknown): string {
   if (/[",\n\r]/.test(str)) {
     str = `"${str.replace(/"/g, '""')}"`
   }
-  // Protect against CSV injection
   if (typeof val === 'string' && /^[=+\-@]/.test(str)) {
     str = `'${str}`
   }
@@ -21,14 +24,15 @@ function esc(val: unknown): string {
 
 export function writeRosterCsv(input: RosterCsvInput): string {
   const { model } = input
-  
+  const title = `${input.schoolName || ''} roster for grade ${input.grade} sec "${input.section}"  academic year ${input.academicYear}`
+
   const headers = [
     ROSTER_LABELS.NO,
     ROSTER_LABELS.NAME,
     ROSTER_LABELS.SEX,
     ROSTER_LABELS.AGE,
     ROSTER_LABELS.SEMESTER,
-    ...model.subjects,
+    ...model.subjects.map((s) => s.label),
     ROSTER_LABELS.TOTAL,
     ROSTER_LABELS.AVERAGE,
     ROSTER_LABELS.RANK,
@@ -38,6 +42,8 @@ export function writeRosterCsv(input: RosterCsvInput): string {
   ]
 
   const rows: string[] = []
+  rows.push(title)
+  rows.push('') // spacer
   rows.push(headers.map(esc).join(','))
 
   for (const student of model.students) {
@@ -60,6 +66,5 @@ export function writeRosterCsv(input: RosterCsvInput): string {
     }
   }
 
-  // UTF-8 BOM + CRLF
   return '\uFEFF' + rows.join('\r\n')
 }

@@ -211,5 +211,9 @@
   "about.sec6P3": "• መተግበሪያው ያጣምራቸዋል እና አንድ የመጨረሻ የ Excel ፋይል ይፈጥራል።",
   "about.sec7Title": "7. የውሂብ ደህንነት (ቅንብሮች)",
   "about.sec7P1": "• ውሂብዎ በኢንተርኔት ላይ ሳይሆን በስልክዎ ላይ ተቀምጧል።",
-  "about.sec7P2": "• ውሂብዎን ለመጠበቅ ወደ 'Settings' ይሂዱ እና 'Download backup (.json)' ይጠቀሙ።"
+  "about.sec7P2": "• ውሂብዎን ለመጠበቅ ወደ 'Settings' ይሂዱ እና 'Download backup (.json)' ይጠቀሙ።",
+  "analytics.university": "ዩኒቨርሲቲ / ኮሌጅ",
+  "analytics.school": "ትምህርት ቤት (1-12)",
+  "export.passFail": "አለፈ/ወደቀ",
+  "export.failedSubjects": "ያለፉት ትምህርቶች (<50)"
 }

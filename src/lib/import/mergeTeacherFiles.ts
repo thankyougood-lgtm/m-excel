@@ -1,8 +1,10 @@
-import * as XLSX from 'xlsx-js-style'
 import type { RosterModel, RosterStudentBlock, RosterRow } from '../../export/roster/buildRoster'
 
 // Helper to extract data from one sheet
-function extractData(file: File): Promise<{ students: Map<string, Record<string, number>>, subjects: Set<string> }> {
+async function extractData(file: File): Promise<{ students: Map<string, Record<string, number>>, subjects: Set<string> }> {
+  // Dynamically import the Excel library ONLY when this function is called
+  const XLSX = await import('xlsx-js-style')
+  
   return new Promise((resolve) => {
     const reader = new FileReader()
     reader.onload = (e) => {

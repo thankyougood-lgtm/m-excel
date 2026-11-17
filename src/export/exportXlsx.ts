@@ -10,20 +10,12 @@ export async function exportXlsx(payload: ExportPayload): Promise<void> {
   const headerTextRgb = exportTheme.headerText.replace('#', '')
   const altRowRgb = exportTheme.alternateRowFill.replace('#', '')
   const borderRgb = exportTheme.border.replace('#', '')
+  const textRgb = exportTheme.text.replace('#', '')
 
   const headerStyle = {
-    font: {
-      bold: true,
-      color: { rgb: headerTextRgb },
-      sz: 11,
-    },
-    fill: {
-      fgColor: { rgb: headerFillRgb },
-    },
-    alignment: {
-      horizontal: 'center',
-      vertical: 'center',
-    },
+    font: { bold: true, color: { rgb: headerTextRgb }, sz: 11 },
+    fill: { fgColor: { rgb: headerFillRgb } },
+    alignment: { horizontal: 'center', vertical: 'center' },
     border: {
       top: { style: 'thin', color: { rgb: borderRgb } },
       bottom: { style: 'thin', color: { rgb: borderRgb } },
@@ -32,93 +24,92 @@ export async function exportXlsx(payload: ExportPayload): Promise<void> {
     },
   }
 
-  // Row 1 header cells
-  const dataRows: Array<Array<{ v: string | number; t: string; s?: unknown }>> = []
+  const dataStyle = {
+    font: { color: { rgb: textRgb }, sz: 10 },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      top: { style: 'thin', color: { rgb: borderRgb } },
+      bottom: { style: 'thin', color: { rgb: borderRgb } },
+      left: { style: 'thin', color: { rgb: borderRgb } },
+      right: { style: 'thin', color: { rgb: borderRgb } },
+    },
+  }
+
+  const altStyle = {
+    ...dataStyle,
+    fill: { fgColor: { rgb: altRowRgb } },
+  }
+
+  const titleStyle = {
+    font: { name: 'Times New Roman', bold: true, sz: 12, color: { rgb: textRgb } },
+    alignment: { horizontal: 'left', vertical: 'center' },
+  }
+
+  // 1. Title Row
+  const titleParts = [payload.schoolName, payload.className, sheetName, payload.academicYear].filter(Boolean)
+  const titleText = titleParts.join(' - ')
+  const titleRow = payload.columns.map((_, idx) => 
+    idx === 0 ? { v: titleText, t: 's', s: titleStyle } : { v: '', t: 's' }
+  )
+
+  // 2. Header Row
   const headerRow = payload.columns.map((col) => ({
     v: col.label,
     t: 's',
     s: headerStyle,
   }))
-  dataRows.push(headerRow)
 
-  // Data rows
-  payload.rows.forEach((rowData, rowIndex) => {
-    const isAlt = rowIndex % 2 === 1
-    const cellStyle = {
-      font: { sz: 10 },
-      fill: isAlt ? { fgColor: { rgb: altRowRgb } } : undefined,
-      alignment: { vertical: 'center' },
-      border: {
-        top: { style: 'thin', color: { rgb: borderRgb } },
-        bottom: { style: 'thin', color: { rgb: borderRgb } },
-        left: { style: 'thin', color: { rgb: borderRgb } },
-        right: { style: 'thin', color: { rgb: borderRgb } },
-      },
-    }
+  // 3. Data Rows
+  const dataRows: any[][] = [titleRow, new Array(payload.columns.length).fill({v: '', t: 's'}), headerRow]
 
-    const rowCells: Array<{ v: string | number; t: string; s?: unknown }> = []
-    for (const col of payload.columns) {
+  payload.rows.forEach((row, rowIndex) => {
+    const rowStyle = rowIndex % 2 === 1 ? altStyle : dataStyle
+    const cells = payload.columns.map((col) => {
+      let val: string | number = ''
+      let type: 'n' | 's' = 's'
+
       if (col.kind === 'no') {
-        rowCells.push({ v: rowData.serialNo, t: 'n', s: { ...cellStyle, alignment: { horizontal: 'center' } } })
+        val = row.serialNo
+        type = 'n'
       } else if (col.kind === 'name') {
-        rowCells.push({ v: rowData.name, t: 's', s: { ...cellStyle, alignment: { horizontal: 'left' } } })
+        val = row.name
       } else if (col.kind === 'sex') {
-        rowCells.push({ v: rowData.sex ?? '', t: 's', s: { ...cellStyle, alignment: { horizontal: 'center' } } })
+        val = row.sex || ''
       } else if (col.kind === 'age') {
-        const hasAge = rowData.age !== '' && rowData.age !== null && rowData.age !== undefined
-        rowCells.push({
-          v: hasAge ? Number(rowData.age) : '',
-          t: hasAge ? 'n' : 's',
-          s: { ...cellStyle, alignment: { horizontal: 'center' } },
-        })
+        val = row.age || ''
       } else if (col.kind === 'total') {
-        const hasTotal = rowData.total !== null && rowData.total !== undefined
-        rowCells.push({
-          v: hasTotal ? Number(rowData.total) : '',
-          t: hasTotal ? 'n' : 's',
-          s: { ...cellStyle, alignment: { horizontal: 'center' } },
-        })
+        val = row.total ?? ''
+        type = row.total !== null ? 'n' : 's'
       } else if (col.kind === 'remark') {
-        rowCells.push({ v: rowData.remark ?? '', t: 's', s: { ...cellStyle, alignment: { horizontal: 'left' } } })
+        val = row.remark || ''
       } else {
-        const val = rowData.scores[col.id]
-        if (typeof val === 'number') {
-          rowCells.push({ v: val, t: 'n', s: { ...cellStyle, alignment: { horizontal: 'center' } } })
-        } else if (typeof val === 'string' && val.trim() !== '') {
-          rowCells.push({ v: val, t: 's', s: { ...cellStyle, alignment: { horizontal: 'center' } } })
-        } else {
-          // Blank score is empty cell, never 0
-          rowCells.push({ v: '', t: 's', s: cellStyle })
-        }
+        // Score or Extra column
+        const scoreVal = row.scores[col.id]
+        val = scoreVal !== null && scoreVal !== undefined ? scoreVal : ''
+        type = typeof val === 'number' ? 'n' : 's'
       }
-    }
-    dataRows.push(rowCells)
-  })
 
-  // Convert array of styled cells to worksheet
-  const ws: Record<string, unknown> = {}
-  dataRows.forEach((row, r) => {
-    row.forEach((cell, c) => {
-      const cellRef = XLSX.utils.encode_cell({ r, c })
-      ws[cellRef] = cell
+      return { v: val, t: type, s: rowStyle }
     })
-  })
-  ws['!ref'] = XLSX.utils.encode_range({
-    s: { r: 0, c: 0 },
-    e: { r: dataRows.length - 1, c: payload.columns.length - 1 },
+    dataRows.push(cells)
   })
 
-  // In Excel, column width (wch) represents the number of characters in standard font.
-  // Since a character width is roughly 7 pixels at standard DPI and default spreadsheet font,
-  // converting pixel widths to Excel wch requires dividing the pixel count by 7 (Math.round(px / 7)).
-  ws['!cols'] = payload.columns.map((col) => ({
-    wch: Math.round(col.widthPx / 7),
-  }))
+  const ws = XLSX.utils.aoa_to_sheet(dataRows)
+
+  // Merges: Title spans all columns
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: payload.columns.length - 1 } }]
+
+  // Column widths
+  ws['!cols'] = payload.columns.map((col) => ({ wch: Math.round(col.widthPx / 7) }))
+
+  // Row heights (tall title, normal rest)
+  const rowHeights = [{ hpt: 24 }, { hpt: 10 }]
+  for (let i = 0; i < payload.rows.length + 1; i++) {
+    rowHeights.push({ hpt: 18 })
+  }
+  ws['!rows'] = rowHeights
 
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws as never, sheetName)
-
-  const fileName = getExportFileName(payload.className, payload.semester, 'xlsx')
-  XLSX.writeFile(wb, fileName)
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+  XLSX.writeFile(wb, getExportFileName(payload.className, payload.semester, 'xlsx'))
 }
-

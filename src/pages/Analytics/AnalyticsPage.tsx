@@ -1,30 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { SheetTabs } from '../../components/Sheets/SheetTabs'
-import { computeLetterGrade } from '../../lib/grades'
-import { exportData } from '../../export'
-import type { ExportColumn, ExportPayload, ExportStudentRow } from '../../export/types'
 import type {
-  AttendanceRecordRow,
-  AttendanceSessionRow,
-  MarkBookClass,
-  Semester,
-  StudentRow,
-  SubjectRow,
+  AttendanceRecordRow, AttendanceSessionRow, MarkBookClass,
+  Semester, StudentRow, SubjectRow,
 } from '../../db/db'
 import * as attendanceRepo from '../../db/repositories/attendanceRepo'
 import * as classRepo from '../../db/repositories/classRepo'
@@ -32,25 +14,20 @@ import * as scoreRepo from '../../db/repositories/scoreRepo'
 import * as studentRepo from '../../db/repositories/studentRepo'
 import * as subjectRepo from '../../db/repositories/subjectRepo'
 import {
-  computeOverview,
-  computeSubjectAverages,
-  computeScoreDistribution,
-  computeAttendanceBreakdown,
-  computeAttendanceTrend,
-  computeSexSplit,
-  computeStudentSummaries,
-  type ScoreMatrix,
+  computeOverview, computeSubjectAverages, computeScoreDistribution,
+  computeAttendanceBreakdown, computeAttendanceTrend, computeSexSplit,
+  computeStudentSummaries, type ScoreMatrix,
 } from '../../lib/analytics/compute'
+import { computeLetterGrade } from '../../lib/grades'
+import { calculateSchoolPassFail } from '../../lib/schoolPassFail'
+import { exportData } from '../../export'
+import type { ExportColumn, ExportPayload, ExportStudentRow } from '../../export/types'
 import en from '../../i18n/en.json'
 import am from '../../i18n/am.json'
 import om from '../../i18n/om.json'
 import './AnalyticsPage.css'
 
-const dictionaries = {
-  en: en as Record<string, string>,
-  am: am as Record<string, string>,
-  om: om as Record<string, string>,
-}
+const dictionaries = { en: en as Record<string, string>, am: am as Record<string, string>, om: om as Record<string, string> }
 type Locale = keyof typeof dictionaries
 function getLocale(): Locale {
   const saved = localStorage.getItem('markbook-language')
@@ -62,7 +39,7 @@ function getText(key: string): string {
 
 type SheetTab = { id: number; label: string; active?: boolean }
 type SortKey = 'no' | 'name' | 'avg' | 'att'
-
+type SchoolType = 'university' | 'school'
 const CHART_COLORS = ['#2F5BE0', '#4B7BF5', '#7AA0FF', '#A7BEFF', '#C9D9FF']
 
 function readSelectedSheet(): { classId: number | null; semester: Semester } {
@@ -78,14 +55,11 @@ function shortDate(iso: string): string {
   try {
     const d = new Date(iso + 'T00:00:00')
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  } catch {
-    return iso
-  }
+  } catch { return iso }
 }
 
 export function AnalyticsPage() {
   const initial = useMemo(() => readSelectedSheet(), [])
-
   const [classes, setClasses] = useState<MarkBookClass[]>([])
   const [selectedClassId, setSelectedClassId] = useState<number | null>(initial.classId)
   const [semester, setSemester] = useState<Semester>(initial.semester)
@@ -97,6 +71,7 @@ export function AnalyticsPage() {
   const [loading, setLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('no')
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null)
+  const [schoolType, setSchoolType] = useState<SchoolType>('university')
 
   const activeClass = classes.find((c) => c.id === selectedClassId) ?? null
 
@@ -110,10 +85,7 @@ export function AnalyticsPage() {
     void (async () => {
       const items = await classRepo.listClasses()
       setClasses(items)
-      if (!items.length) {
-        setSelectedClassId(null)
-        return
-      }
+      if (!items.length) { setSelectedClassId(null); return }
       const savedExists = selectedClassId != null && items.some((i) => i.id === selectedClassId)
       const nextSelected = savedExists ? selectedClassId : (items[0]?.id ?? null)
       setSelectedClassId(nextSelected)
@@ -123,7 +95,6 @@ export function AnalyticsPage() {
         if (!allowed.includes(semester)) setSemester((allowed[0] as Semester) || 1)
       }
     })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -143,13 +114,10 @@ export function AnalyticsPage() {
         ])
         const sessionIds = nextSessions.map((s) => s.id).filter((id): id is number => id != null)
         const nextRecords = await attendanceRepo.listAttendanceRecords(sessionIds)
-        setStudents(nextStudents)
-        setSubjects(nextSubjects)
-        setScores(nextScores as ScoreMatrix)
-        setSessions(nextSessions)
-        setRecords(nextRecords)
+        setStudents(nextStudents); setSubjects(nextSubjects); setScores(nextScores as ScoreMatrix)
+        setSessions(nextSessions); setRecords(nextRecords)
       } catch (error) {
-        console.error('Failed to load analytics:', error, (error as { inner?: unknown }).inner)
+        console.error('Failed to load analytics:', error)
       } finally {
         setLoading(false)
       }
@@ -160,31 +128,13 @@ export function AnalyticsPage() {
     return selectedSubjectId === null ? subjects : subjects.filter(s => s.id === selectedSubjectId)
   }, [subjects, selectedSubjectId])
 
-  const overview = useMemo(
-    () => computeOverview(students, subjects, sessions),
-    [students, subjects, sessions],
-  )
-  const attendanceBreakdown = useMemo(
-    () => computeAttendanceBreakdown(records, sessions, students),
-    [records, sessions, students],
-  )
-  const subjectAverages = useMemo(
-    () => computeSubjectAverages(scores, filteredSubjects, students),
-    [scores, filteredSubjects, students],
-  )
-  const distribution = useMemo(
-    () => computeScoreDistribution(scores, filteredSubjects, students),
-    [scores, filteredSubjects, students],
-  )
-  const trend = useMemo(
-    () => computeAttendanceTrend(records, sessions, students),
-    [records, sessions, students],
-  )
+  const overview = useMemo(() => computeOverview(students, subjects, sessions), [students, subjects, sessions])
+  const attendanceBreakdown = useMemo(() => computeAttendanceBreakdown(records, sessions, students), [records, sessions, students])
+  const subjectAverages = useMemo(() => computeSubjectAverages(scores, filteredSubjects, students), [scores, filteredSubjects, students])
+  const distribution = useMemo(() => computeScoreDistribution(scores, filteredSubjects, students), [scores, filteredSubjects, students])
+  const trend = useMemo(() => computeAttendanceTrend(records, sessions, students), [records, sessions, students])
   const sexSplit = useMemo(() => computeSexSplit(students), [students])
-  const summaries = useMemo(
-    () => computeStudentSummaries(scores, filteredSubjects, students, records, sessions),
-    [scores, filteredSubjects, students, records, sessions],
-  )
+  const summaries = useMemo(() => computeStudentSummaries(scores, filteredSubjects, students, records, sessions), [scores, filteredSubjects, students, records, sessions])
 
   const sortedSummaries = useMemo(() => {
     const copy = [...summaries]
@@ -192,18 +142,12 @@ export function AnalyticsPage() {
     if (sortKey === 'name') return copy.sort((a, b) => a.name.localeCompare(b.name))
     if (sortKey === 'avg') {
       return copy.sort((a, b) => {
-        if (a.average == null && b.average == null) return 0
-        if (a.average == null) return 1
-        if (b.average == null) return -1
-        return b.average - a.average
+        if (a.average == null) return 1; if (b.average == null) return -1; return b.average - a.average
       })
     }
     if (sortKey === 'att') {
       return copy.sort((a, b) => {
-        if (a.attendancePct == null && b.attendancePct == null) return 0
-        if (a.attendancePct == null) return 1
-        if (b.attendancePct == null) return -1
-        return b.attendancePct - a.attendancePct
+        if (a.attendancePct == null) return 1; if (b.attendancePct == null) return -1; return b.attendancePct - a.attendancePct
       })
     }
     return copy
@@ -228,10 +172,10 @@ export function AnalyticsPage() {
     const nextClassId = Math.floor(tabId / 10)
     const nextSem = (tabId % 10) as Semester
     if (!Number.isFinite(nextClassId) || (nextSem !== 1 && nextSem !== 2)) return
-    setSelectedClassId(nextClassId)
-    setSemester(nextSem)
+    setSelectedClassId(nextClassId); setSemester(nextSem)
   }
 
+  // Export logic
   useEffect(() => {
     const handleExport = async (e: Event) => {
       const ce = e as CustomEvent<{ format?: 'csv' | 'xlsx' }>
@@ -239,29 +183,65 @@ export function AnalyticsPage() {
       
       window.dispatchEvent(new CustomEvent('markbook:export-status', { detail: { exporting: true } }))
       try {
-        const columns: ExportColumn[] = [
-          { id: 'no', label: 'NO', widthPx: 48, kind: 'no' },
-          { id: 'name', label: 'Student Name', widthPx: 180, kind: 'name' },
-          { id: 'avg', label: 'Average %', widthPx: 80, kind: 'score' },
-          { id: 'att', label: 'Attendance %', widthPx: 80, kind: 'score' },
-          { id: 'grade', label: 'Grade', widthPx: 60, kind: 'extra' },
-        ]
+        let columns: ExportColumn[] = []
+        let rows: ExportStudentRow[] = []
 
-        const rows: ExportStudentRow[] = summaries.map((s, idx) => {
-          const letter = computeLetterGrade(s.average)
-          return {
-            studentId: s.studentId,
-            serialNo: idx + 1,
-            name: s.name,
-            sex: '', age: '',
-            scores: {
-              avg: s.average ?? '',
-              att: s.attendancePct ?? '',
-              grade: letter ?? ''
-            },
-            total: null, remark: ''
-          }
-        })
+        if (schoolType === 'university') {
+          columns = [
+            { id: 'no', label: 'NO', widthPx: 48, kind: 'no' },
+            { id: 'name', label: 'Student Name', widthPx: 180, kind: 'name' },
+            { id: 'avg', label: 'Average %', widthPx: 80, kind: 'score' },
+            { id: 'att', label: 'Attendance %', widthPx: 80, kind: 'score' },
+            { id: 'grade', label: 'Grade', widthPx: 60, kind: 'extra' },
+          ]
+
+          rows = summaries.map((s, idx) => {
+            const letter = computeLetterGrade(s.average)
+            return {
+              studentId: s.studentId, serialNo: idx + 1, name: s.name, sex: '', age: '',
+              scores: { avg: s.average ?? '', att: s.attendancePct ?? '', grade: letter ?? '' },
+              total: null, remark: ''
+            }
+          })
+        } else {
+          // School (1-12) Logic
+          columns = [
+            { id: 'no', label: 'NO', widthPx: 48, kind: 'no' },
+            { id: 'name', label: 'Student Name', widthPx: 180, kind: 'name' },
+            { id: 'avg', label: 'Average %', widthPx: 80, kind: 'score' },
+            { id: 'att', label: 'Attendance %', widthPx: 80, kind: 'score' },
+            { id: 'pass', label: getText('export.passFail'), widthPx: 80, kind: 'extra' },
+            { id: 'failed', label: getText('export.failedSubjects'), widthPx: 200, kind: 'extra' },
+          ]
+
+          rows = students.filter(s => !s.archivedAt && s.id != null).map((student, idx) => {
+            const marksForStudent: Record<string, number | null> = {}
+            const scoreRow = scores[student.id!] || {}
+            
+            // Use the filteredSubjects here so it respects the selected subject chip!
+            const subjectList = filteredSubjects.map(sub => ({ key: String(sub.id), label: sub.name }))
+            
+            for (const sub of filteredSubjects) {
+              if (sub.id != null) {
+                marksForStudent[String(sub.id)] = typeof scoreRow[sub.id] === 'number' ? scoreRow[sub.id] as number : null
+              }
+            }
+
+            const result = calculateSchoolPassFail(marksForStudent, subjectList)
+            const att = summaries.find(s => s.studentId === student.id)
+
+            return {
+              studentId: student.id!, serialNo: idx + 1, name: student.fullName, sex: '', age: '',
+              scores: {
+                avg: result.average !== null ? result.average.toFixed(1) : '',
+                att: att?.attendancePct !== null && att?.attendancePct !== undefined ? att.attendancePct.toFixed(1) : '',
+                pass: result.passed ? 'PASS' : 'FAIL',
+                failed: result.failedSubjects.join(', ')
+              },
+              total: null, remark: ''
+            }
+          })
+        }
 
         const payload: ExportPayload = {
           schoolName: activeClass.schoolName,
@@ -280,18 +260,13 @@ export function AnalyticsPage() {
     }
     window.addEventListener('markbook:export', handleExport)
     return () => window.removeEventListener('markbook:export', handleExport)
-  }, [activeClass, summaries, semester])
+  }, [activeClass, summaries, semester, schoolType, students, filteredSubjects, scores])
 
   if (!activeClass) {
     return (
       <section className="analytics-page">
-        <div className="analytics-empty">
-          <p>{getText('analytics.empty')}</p>
-        </div>
-        <SheetTabs
-          tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]}
-          onSelect={handleTabSelect}
-        />
+        <div className="analytics-empty"><p>{getText('analytics.empty')}</p></div>
+        <SheetTabs tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]} onSelect={handleTabSelect} />
       </section>
     )
   }
@@ -310,12 +285,9 @@ export function AnalyticsPage() {
     { name: getText('analytics.sexBlank'), value: sexSplit.blank, key: 'blank' },
   ].filter((p) => p.value > 0)
 
-  const trendData = trend
-    .filter((t) => t.attendancePct != null)
-    .map((t) => ({
-      date: shortDate(t.date),
-      pct: t.attendancePct as number,
-    }))
+  const trendData = trend.filter((t) => t.attendancePct != null).map((t) => ({
+    date: shortDate(t.date), pct: t.attendancePct as number,
+  }))
 
   return (
     <section className="analytics-page">
@@ -323,16 +295,30 @@ export function AnalyticsPage() {
         <div className="record-meta-block">
           <div className="record-class-name">{activeClass.name}</div>
           <div className="record-school-name">{activeClass.schoolName ?? ''}</div>
-          <div className="record-semester">
-            {activeClass.academicYear ?? ''} ·{' '}
-            {semester === 1 ? getText('semester.short.i') : getText('semester.short.ii')}
-          </div>
+          <div className="record-semester">{activeClass.academicYear ?? ''} · {semester === 1 ? getText('semester.short.i') : getText('semester.short.ii')}</div>
         </div>
         {loading && <div className="save-indicator">{getText('analytics.loading')}</div>}
       </div>
 
       <div className="analytics-scroll">
-        {/* ── Overview strip ─────────────────────────────── */}
+        {/* New School Type Toggle */}
+        <div className="toggle-group" style={{ marginBottom: '12px' }}>
+          <button
+            type="button"
+            className={`toggle-btn ${schoolType === 'university' ? 'is-active' : ''}`}
+            onClick={() => setSchoolType('university')}
+          >
+            {getText('analytics.university')}
+          </button>
+          <button
+            type="button"
+            className={`toggle-btn ${schoolType === 'school' ? 'is-active' : ''}`}
+            onClick={() => setSchoolType('school')}
+          >
+            {getText('analytics.school')}
+          </button>
+        </div>
+
         <div className="analytics-filter-bar">
           <button 
             type="button" 
@@ -354,47 +340,21 @@ export function AnalyticsPage() {
         </div>
 
         <div className="analytics-overview">
-          <div className="overview-card">
-            <div className="overview-value">{overview.studentCount}</div>
-            <div className="overview-label">{getText('analytics.students')}</div>
-          </div>
-          <div className="overview-card">
-            <div className="overview-value">{overview.subjectCount}</div>
-            <div className="overview-label">{getText('analytics.subjects')}</div>
-          </div>
-          <div className="overview-card">
-            <div className="overview-value">{overview.sessionCount}</div>
-            <div className="overview-label">{getText('analytics.sessions')}</div>
-          </div>
-          <div className="overview-card">
-            <div className="overview-value">
-              {attTotal > 0 ? Math.round((attendanceBreakdown.P / attTotal) * 100) + '%' : '—'}
-            </div>
-            <div className="overview-label">{getText('analytics.attendancePct')}</div>
-          </div>
+          <div className="overview-card"><div className="overview-value">{overview.studentCount}</div><div className="overview-label">{getText('analytics.students')}</div></div>
+          <div className="overview-card"><div className="overview-value">{overview.subjectCount}</div><div className="overview-label">{getText('analytics.subjects')}</div></div>
+          <div className="overview-card"><div className="overview-value">{overview.sessionCount}</div><div className="overview-label">{getText('analytics.sessions')}</div></div>
+          <div className="overview-card"><div className="overview-value">{attTotal > 0 ? Math.round((attendanceBreakdown.P / attTotal) * 100) + '%' : '—'}</div><div className="overview-label">{getText('analytics.attendancePct')}</div></div>
         </div>
 
-        {/* ── Charts grid ────────────────────────────────── */}
         <div className="analytics-charts-grid">
           <div className="chart-card">
             <h3>{getText('analytics.subjectAvgTitle')}</h3>
-            {subjectAverages.filter((s) => s.averagePct != null).length === 0 ? (
-              <div className="chart-empty">{getText('analytics.noScores')}</div>
-            ) : (
+            {subjectAverages.filter((s) => s.averagePct != null).length === 0 ? <div className="chart-empty">{getText('analytics.noScores')}</div> : (
               <ResponsiveContainer width="100%" height={Math.max(180, subjectAverages.length * 32)}>
-                <BarChart
-                  data={subjectAverages.filter((s) => s.averagePct != null)}
-                  layout="vertical"
-                  margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                >
+                <BarChart data={subjectAverages.filter((s) => s.averagePct != null)} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={80}
-                    tick={{ fontSize: 11 }}
-                  />
+                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => `${v}%`} />
                   <Bar dataKey="averagePct" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -404,9 +364,7 @@ export function AnalyticsPage() {
 
           <div className="chart-card">
             <h3>{getText('analytics.distributionTitle')}</h3>
-            {distribution.every((b) => b.count === 0) ? (
-              <div className="chart-empty">{getText('analytics.noScores')}</div>
-            ) : (
+            {distribution.every((b) => b.count === 0) ? <div className="chart-empty">{getText('analytics.noScores')}</div> : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={distribution} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -421,18 +379,13 @@ export function AnalyticsPage() {
 
           <div className="chart-card">
             <h3>{getText('analytics.attendanceBreakdownTitle')}</h3>
-            {attTotal === 0 ? (
-              <div className="chart-empty">{getText('analytics.noAttendance')}</div>
-            ) : (
+            {attTotal === 0 ? <div className="chart-empty">{getText('analytics.noAttendance')}</div> : (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                    {pieData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
+                    {pieData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Tooltip /><Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -440,9 +393,7 @@ export function AnalyticsPage() {
 
           <div className="chart-card">
             <h3>{getText('analytics.trendTitle')}</h3>
-            {trendData.length === 0 ? (
-              <div className="chart-empty">{getText('analytics.noAttendance')}</div>
-            ) : (
+            {trendData.length === 0 ? <div className="chart-empty">{getText('analytics.noAttendance')}</div> : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={trendData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -457,44 +408,30 @@ export function AnalyticsPage() {
 
           <div className="chart-card">
             <h3>{getText('analytics.sexSplitTitle')}</h3>
-            {sexData.length === 0 ? (
-              <div className="chart-empty">{getText('analytics.noStudents')}</div>
-            ) : (
+            {sexData.length === 0 ? <div className="chart-empty">{getText('analytics.noStudents')}</div> : (
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie data={sexData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label>
-                    {sexData.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                    ))}
+                    {sexData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Tooltip /><Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
         </div>
 
-        {/* ── Student summary table ──────────────────────── */}
         <div className="analytics-table-card">
           <h3>{getText('analytics.studentsTableTitle')}</h3>
-          {summaries.length === 0 ? (
-            <div className="chart-empty">{getText('analytics.noStudents')}</div>
-          ) : (
+          {summaries.length === 0 ? <div className="chart-empty">{getText('analytics.noStudents')}</div> : (
             <div className="analytics-table-scroll">
               <table className="analytics-table">
                 <thead>
                   <tr>
                     <th onClick={() => setSortKey('no')} className={sortKey === 'no' ? 'is-sorted' : ''}>NO</th>
-                    <th onClick={() => setSortKey('name')} className={sortKey === 'name' ? 'is-sorted' : ''}>
-                      {getText('addRecord.studentName')}
-                    </th>
-                    <th onClick={() => setSortKey('avg')} className={sortKey === 'avg' ? 'is-sorted' : ''}>
-                      {getText('analytics.avg')}
-                    </th>
-                    <th onClick={() => setSortKey('att')} className={sortKey === 'att' ? 'is-sorted' : ''}>
-                      {getText('analytics.attendancePct')}
-                    </th>
+                    <th onClick={() => setSortKey('name')} className={sortKey === 'name' ? 'is-sorted' : ''}>{getText('addRecord.studentName')}</th>
+                    <th onClick={() => setSortKey('avg')} className={sortKey === 'avg' ? 'is-sorted' : ''}>{getText('analytics.avg')}</th>
+                    <th onClick={() => setSortKey('att')} className={sortKey === 'att' ? 'is-sorted' : ''}>{getText('analytics.attendancePct')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -513,10 +450,7 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <SheetTabs
-        tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]}
-        onSelect={handleTabSelect}
-      />
+      <SheetTabs tabs={sheetTabs.length ? sheetTabs : [{ id: 0, label: '+', active: true }]} onSelect={handleTabSelect} />
     </section>
   )
 }
