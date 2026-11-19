@@ -22,7 +22,6 @@ export default defineConfig({
         theme_color: '#0B1F5C',
         background_color: '#F2F6FE',
         display: 'standalone',
-        targetSdkVersion: 34,
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
