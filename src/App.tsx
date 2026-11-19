@@ -41,6 +41,17 @@ const translations = {
 
 function App() {
   const [page, setPage] = useState<PageKey>('home')
+
+  // Track page views with GoatCounter
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).goatcounter) {
+      (window as any).goatcounter.count({
+        path: '/' + page,
+        title: page,
+      })
+    }
+  }, [page])
+
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLElement>(null)
   const [exportMenuOpen, setExportMenuOpen] = useState(false)
