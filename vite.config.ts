@@ -16,8 +16,8 @@ export default defineConfig({
         'pwa-maskable-512x512.png',
       ],
       manifest: {
-        name: 'Mark Book',
-        short_name: 'MarkBook',
+        name: "m-Excel",
+        short_name: "m-Excel",
         description: 'Offline-first gradebook for teachers',
         theme_color: '#0B1F5C',
         background_color: '#F2F6FE',
