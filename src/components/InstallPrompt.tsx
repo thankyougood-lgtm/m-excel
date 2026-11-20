@@ -64,8 +64,8 @@ export function InstallPrompt() {
     <div className="install-banner">
       {mode === 'install' && (
         <>
-          <p>📱 Install <strong>m-Excel</strong> for offline access</p>
-          <button className="install-btn" onClick={installClick}>Install App</button>
+          <p>📱 Download <strong>m-Excel</strong> for offline access</p>
+          <button className="install-btn" onClick={installClick}>Download App</button>
           <button className="dismiss-btn" onClick={() => setMode('hidden')}>Later</button>
         </>
       )}
