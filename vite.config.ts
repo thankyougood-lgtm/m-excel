@@ -48,8 +48,26 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ttf}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3, // If internet is slow (3s), load from cache
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // Keep for 30 days
+              },
+            },
+          },
+        ],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',
+        navigateFallbackAllowlist: [/^\/(?!api)/], // Allow all except API routes
+        cleanupOutdatedCaches: true, // Automatically clean old caches
+        skipWaiting: true, // Force the new service worker to activate immediately
+        clientsClaim: true, // Take control of the page immediately
         cleanupOutdatedCaches: true,
       },
     }),
