@@ -36,5 +36,8 @@
     "nanoid": "^6.0.2",
     "recharts": "^2.15.4",
     "xlsx-js-style": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
