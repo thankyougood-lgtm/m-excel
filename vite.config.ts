@@ -65,7 +65,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: '/index.html',
         navigateFallbackAllowlist: [/^\/(?!api)/], // Allow all except API routes
-        cleanupOutdatedCaches: true, // Automatically clean old caches
+         // Automatically clean old caches
         skipWaiting: true, // Force the new service worker to activate immediately
         clientsClaim: true, // Take control of the page immediately
         cleanupOutdatedCaches: true,
