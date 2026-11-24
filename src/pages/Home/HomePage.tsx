@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { parseAndMergeTwoFiles } from '../../lib/import/mergeTeacherFiles'
 import { writeRosterXlsx } from '../../export/roster/writeRosterXlsx'
 import { formatAcademicYear } from '../../export/roster/academicYear'
@@ -40,6 +40,25 @@ export function HomePage({ onOpenAddRecord, t }: HomePageProps) {
   const [sem1File, setSem1File] = useState<File | null>(null)
   const [sem2File, setSem2File] = useState<File | null>(null)
   const [isMerging, setIsMerging] = useState(false)
+      const [installPrompt, setInstallPrompt] = useState<any>(null)
+
+      useEffect(() => {
+        const handleBeforeInstallPrompt = (e: Event) => {
+          e.preventDefault()
+          setInstallPrompt(e)
+        }
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      }, [])
+
+      const handleInstallClick = async () => {
+        if (!installPrompt) return
+        installPrompt.prompt()
+        const { outcome } = await installPrompt.userChoice
+        if (outcome === 'accepted') {
+          setInstallPrompt(null)
+        }
+      }
 
   const handleMerge = async () => {
     if (!sem1File || !sem2File) return
@@ -86,6 +105,21 @@ export function HomePage({ onOpenAddRecord, t }: HomePageProps) {
           </div>
         </div>
       </div>
+
+      {installPrompt && (
+        <button 
+          onClick={handleInstallClick}
+          className="home-install-btn"
+          style={{
+            background: '#2F5BE0', color: 'white', padding: '12px 24px', borderRadius: '30px', border: 'none',
+            fontSize: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+            boxShadow: '0 4px 12px rgba(47, 91, 224, 0.3)', margin: '16px 0', cursor: 'pointer',
+            width: '100%', maxWidth: '440px', justifyContent: 'center'
+          }}
+        >
+          📲 {t('home.installApp')}
+        </button>
+      )}
 
       {/* 2. Upload & Merge Card */}
       <div className="home-pro-card upload-card">

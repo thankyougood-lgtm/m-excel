@@ -215,5 +215,7 @@
   "analytics.university": "ዩኒቨርሲቲ / ኮሌጅ",
   "analytics.school": "ትምህርት ቤት (1-12)",
   "export.passFail": "አለፈ/ወደቀ",
-  "export.failedSubjects": "ያለፉት ትምህርቶች (<50)"
+  "export.failedSubjects": "ያለፉት ትምህርቶች (<50)",
+  "home.installApp": "መተግበሪያውን ጫን",
+  "settings.installHint": "መተግበሪያውን በስልክዎ ለመጫን ይህንን አገናኝ በChrome (Android) ወይም Safari (iPhone) ውስጥ ይክፈቱ እና \"Add to Home Screen\" ይምረጡ።"
 }

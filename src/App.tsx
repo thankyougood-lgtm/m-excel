@@ -365,6 +365,14 @@ function App() {
                 </span>
               </div>
 
+              
+              <div className="setting-row stacked" style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                <label>📲 {t('home.installApp')}</label>
+                <span className="setting-status" style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                  {t('settings.installHint')}
+                </span>
+              </div>
+
               {import.meta.env.DEV && (
                 <button
                   type="button"

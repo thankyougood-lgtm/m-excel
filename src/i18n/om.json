@@ -215,5 +215,7 @@
   "analytics.university": "Yuunivarsiitii / Kolleejjii",
   "analytics.school": "Mana Barumsaa (1-12)",
   "export.passFail": "Darbe/Kufe",
-  "export.failedSubjects": "Barnoota Kufe (<50)"
+  "export.failedSubjects": "Barnoota Kufe (<50)",
+  "home.installApp": "Appilikeeshinii Fe'i",
+  "settings.installHint": "Appilikeeshinii bilbila keessan irratti fe'uuf liinkii kana Chrome (Android) ykn Safari (iPhone) keessatti baniitii \"Add to Home Screen\" filadhu."
 }

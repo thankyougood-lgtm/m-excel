@@ -215,5 +215,7 @@
   "analytics.university": "University / College",
   "analytics.school": "School (1-12)",
   "export.passFail": "Pass/Fail",
-  "export.failedSubjects": "Failed Subjects (<50)"
+  "export.failedSubjects": "Failed Subjects (<50)",
+  "home.installApp": "Install App",
+  "settings.installHint": "To install the app on your phone, open this link in Chrome (Android) or Safari (iPhone) and choose \"Add to Home Screen\"."
 }
